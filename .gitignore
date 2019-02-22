@@ -1,2 +1,5 @@
 *.rdata
 *.docx
+*.zip
+__MACOSX
+.Rhistory
