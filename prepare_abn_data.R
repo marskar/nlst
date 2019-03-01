@@ -59,30 +59,47 @@ abn.pl <- abn %>% group_by(pid, STUDY_YR) %>%
             )
 # abn.pl$lobe.count <- with(abn.pl, any.right.upper+any.right.mid+any.right.lower+
                            #  any.left.upper+any.lingula+any.left.lower)
-abn.pl$interval <- 1*(abn.pl$STUDY_YR==0) + 2*(abn.pl$STUDY_YR==1) + 3*(abn.pl$STUDY_YR==2)
-abn.pl <- subset(abn.pl, select = -STUDY_YR)
-# Set a ceiling of 60 mm to diameter values to prevent influence of extreme outliers
-abn.pl$longest.diam <- ifelse(abn.pl$longest.diam>=60, 60, abn.pl$longest.diam)
-# abn.pl$longest.perp.diam <- ifelse(abn.pl$longest.perp.diam>=60, 60, abn.pl$longest.perp.diam)
-# Add a variable for presence of adenopathy or consolidation
-abn.pl$adenop.consol <- as.numeric(abn.pl$adenopathy==1 | abn.pl$consolidation==1)
 
-#### Combine these ####
-abn.pl.all <- merge(abn.pl, lrads.pl, by = c("pid", "interval"), all.x=T, all.y=T)
-# Make an LRcat variable relevant for negative screen groups
-abn.pl.all <- mutate(abn.pl.all, LRcatcol.neg = as.factor(1*(LRcat=="1") + 2*(LRcat=="2") +
-                                          3*(LRcat %in% c("3","3 or 4A","3,4A, or 4B","4A","4B","4X","4A or 4B"))))
-abn.pl.all$LRcatcol.neg <- ifelse(abn.pl.all$LRcatcol.neg==0, NA, abn.pl.all$LRcatcol.neg)
-abn.pl.all$LRcatcol.neg <- factor(abn.pl.all$LRcatcol.neg, levels=c(1, 2, 3), labels = c("1", "2", "3 or higher"))
-# Make an LRcat variable relevant for positive screen groups - this assigns 1 to missing!
-abn.pl.all <- mutate(abn.pl.all, LRcatcol.pos = as.factor(2*(LRcat=="2") + 3*(LRcat=="3") +
-                      4*(LRcat=="4A") + 5*(LRcat=="4B") + 6*(LRcat=="4X") +
-                        7*(LRcat %in% c("3 or 4A", "3,4A, or 4B", "4A or 4B"))))
-abn.pl.all$LRcatcol.pos <- ifelse(abn.pl.all$LRcatcol.pos==0, NA, abn.pl.all$LRcatcol.pos)
-abn.pl.all$LRcatcol.pos <- factor(abn.pl.all$LRcatcol.pos, levels=c(2,3,4,5,6,7), 
-                      labels = c("2", "3", "4A", "4B", "4X", "3,4A,or4B"))
+abn_lrads_merged <- abn.pl %>%
+    # Replace study year with interval
+    mutate(interval = case_when(
+    STUDY_YR==0 ~ 1,
+    STUDY_YR==1 ~ 2, 
+    STUDY_YR==2 ~ 3
+    )) %>% 
+    select(-STUDY_YR) %>% 
+    # Set a ceiling of 60 mm to diameter values to prevent influence of extreme outliers
+    mutate(longest.diam = ifelse(longest.diam >= 60, 60, longest.diam)) %>% 
+    # Add a variable for presence of adenopathy or consolidation
+    mutate(adenop.consol = as.numeric(adenopathy == 1 | consolidation == 1)) %>% 
+    # Combine the lrads and abn datasets
+    merge(lrads.pl, by = c("pid", "interval"), all.x = TRUE, all.y = TRUE) %>% 
+    mutate(LRcat = as.factor(LRcat))
+
+saveRDS(abn_lrads_merged, file = "abn_lrads_merged.rds")
+
+
+
+
+
+    # Make an LRcat variable relevant for negative screen groups
+    mutate(LRcatcol.neg = case_when(
+        LRcat=="1" ~ 1, 
+        LRcat=="2" ~ 2, 
+        LRcat %in% c("3","3 or 4A","3,4A, or 4B","4A","4B","4X","4A or 4B") ~ 3
+        )) %>% 
+    # Make an LRcat variable relevant for positive screen groups - this assigns 1 to missing!)
+    mutate(LRcatcol.pos = case_when(
+        LRcat=="2" ~ 2,
+        LRcat=="3" ~ 3,
+        LRcat=="4A" ~ 4, 
+        LRcat=="4B" ~ 5,
+        LRcat=="4X" ~ 6,
+        LRcat %in% c("3 or 4A", "3,4A, or 4B", "4A or 4B") ~ 7))
+
 # Note: the Lung-RADS category is missing for 485 screens, but 470 are at T2 (15 at T1).
-table(abn.pl.all[is.na(abn.pl.all$LRcat),]$interval)
-
+table(abn_lrads_merged[is.na(abn_lrads_merged$LRcat),]$interval)
+table(abn_lrads_merged[is.na(abn_lrads_merged$LRcat),]$interval)
+abn_lrads_merged$LRcat
 # Save to disk
 save(abn.pl.all, file=here("abn.spl.20181126.rdata"))

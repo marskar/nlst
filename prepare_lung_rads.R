@@ -10,7 +10,7 @@ lrads_extract <- function(df, x) {
 # Use above function to reshape lungrads data
 # Save RDS file
 haven::read_sas(here("lungrads1.sas7bdat")) %>% 
-    map_df(0:2, lrads_extract, df=.) %>% 
-    saveRDS(file='lungrads.rds')
+    map_dfr(0:2, lrads_extract, df = .) %>% 
+    saveRDS(file = 'lungrads.rds')
 
 readRDS('lungrads.rds')
