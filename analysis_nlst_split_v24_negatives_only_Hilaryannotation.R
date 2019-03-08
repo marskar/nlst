@@ -9,6 +9,12 @@ setwd("/Users/hrobbins827/Documents/PhD/NCI overflow/NLST/Analysis")
 source("/Users/hrobbins827/Documents/PhD/Textbooks Resources/R functions/hilary_functions.R")
 source("kovalchik.R")
 # Read in library functions including Stephanie's coxph.risk which I installed from the local tar.gz file
+
+
+
+# install coxph.risk tar file
+# install lcmodels package
+
 packages <- c("dplyr","ggplot2","survival","gmodels","coxph.risk","geepack","MESS","psych","Hmisc","glmnet","boot")
 lapply(packages, require, c = T)
 # Load PLCO and NLST data sets. New versions provided by Li Cheung on 11 July 2016, 14 July 2016, 20 July 2016, 8 Aug 2016.

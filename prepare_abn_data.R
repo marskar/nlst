@@ -60,7 +60,7 @@ abn.pl <- abn %>% group_by(pid, STUDY_YR) %>%
 # abn.pl$lobe.count <- with(abn.pl, any.right.upper+any.right.mid+any.right.lower+
                            #  any.left.upper+any.lingula+any.left.lower)
 
-abn_lrads_merged <- abn.pl %>%
+abn.pl %>%
     # Replace study year with interval
     mutate(interval = case_when(
     STUDY_YR==0 ~ 1,
@@ -74,12 +74,8 @@ abn_lrads_merged <- abn.pl %>%
     mutate(adenop.consol = as.numeric(adenopathy == 1 | consolidation == 1)) %>% 
     # Combine the lrads and abn datasets
     merge(lrads.pl, by = c("pid", "interval"), all.x = TRUE, all.y = TRUE) %>% 
-    mutate(LRcat = as.factor(LRcat))
-
-saveRDS(abn_lrads_merged, file = "abn_lrads_merged.rds")
-
-
-
+    mutate(LRcat = as.factor(LRcat)) %>% 
+    saveRDS(file = "abn_lrads_merged.rds")
 
 
     # Make an LRcat variable relevant for negative screen groups
