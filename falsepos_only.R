@@ -5,6 +5,7 @@ packages <- c("lmtest", "here", "dplyr", "ggplot2", "survival", "gmodels", "devt
 lapply(packages, require, c = T)
 
 devtools::install_github('https://github.com/skoval/coxph.risk')
+devtools::install_github('https://github.com/marskar/lcmodels')
 
 # Read in my personal defined functions and the Kovalchik prediction function
 source(here("hilary_functions.R"))
@@ -20,13 +21,17 @@ plco = readRDS('plco.rds')
 plco$fam.lung.trend <- ifelse(is.na(plco$fam.lung.trend), 0, plco$fam.lung.trend)
 plco.control <- subset(plco, control.group==1) # control arm of PLCO who had no chest xray
 # Remove people with <30 pack-years and age<55 or age>74 from NLST
-nlst <- dplyr::filter(nlst, pkyears.cat!="[0,30)" & age>=55 & age<=74)
-# Make a new pack-years variable to get rid of the [0,30) level
-nlst <- mutate(nlst, pkyears.cat.clone=ifelse(pkyears.cat=="[30,40)", "[30,40)", ifelse(pkyears.cat=="[40,50)", "[40,50)",
-                      ifelse(pkyears.cat=="[50,Inf]", "[50,Inf]", NA))))  # I checked this with a table
-nlst$pkyears.cat <- as.factor(nlst$pkyears.cat.clone)
-# Make a variable for days to diagnosis
-nlst$days_to_dx <- ifelse(nlst$case==1, 365*nlst$incidence.years, NA)
+nlst <- nlst %>% 
+    filter(pkyears.cat!="[0,30)" & age>=55 & age<=74) %>% 
+    # Make a new pack-years variable to get rid of the [0,30) level
+    mutate(pkyears.cat.clone=ifelse(pkyears.cat == "[30,40)", "[30,40)",
+        ifelse(pkyears.cat == "[40,50)", "[40,50)",
+               ifelse(pkyears.cat == "[50,Inf]", "[50,Inf]", NA)))) %>% 
+    mutate(pkyears.cat=as.factor(pkyears.cat.clone)) %>% 
+    # Make a variable for days to diagnosis
+    mutate(days_to_dx = ifelse(case==1, 365*incidence.years, NA)) %>% 
+    identity()
+
 # Make a subset of NLST data with the LCRAT variables that we will need later
 varlist <- c("female","race","edu6","fam.lung.trend","emp","bmi","cpd","pkyears.cat","age","qtyears","smkyears")
 nlst.sub <- as.data.frame(cbind(nlst[,varlist], pid=nlst$pid, lss=as.numeric(nlst$lss)))
@@ -38,6 +43,11 @@ LCRAT <- coxph(Surv(incidence.years, case) ~
 cox.death <- coxph(Surv(years.followed, other.cause.death) ~ 
                      female+race+edu6+emp+I(bmi <= 18.5)+I(cpd>20)+as.factor(pkyears.cat)+I((age)^2)+I((bmi-25)^2)+
                      I(log(qtyears+1))+smkyears, data = plco.control)
+
+lcratvars <- c("age","female","smkyears","qtyears","cpd","race","emp","fam.lung.trend","bmi","edu6","pkyears.cat")
+
+nlst_lcrat <- as.data.frame(cbind(nlst[, lcratvars], pid=nlst$pid, lss=as.numeric(nlst$lss)))
+# lcmodels::lcmodels(nlst_lcrat) 
 
 # Subset to CT arm in NLST and make a pos/neg variable for the first, second, and third screens
 nlst$T0posneg <- ifelse(nlst$truefalse_scrnres_ly0 %in% c(4,5,6), 0, NA)
