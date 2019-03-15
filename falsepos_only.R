@@ -1,14 +1,39 @@
 #### Data loading and setup ####
 
 # Read in library functions including Stephanie's coxph.risk which I installed from the local tar.gz file
-packages <- c("lmtest", "here", "dplyr", "ggplot2", "survival", "gmodels", "devtools", "geepack", "MESS", "psych", "Hmisc", "glmnet", "boot")
-lapply(packages, require, c = T)
+packages <- c(
+    "lmtest",
+    "here",
+    "dplyr",
+    "ggplot2",
+    "survival",
+    "gmodels",
+    "devtools",
+    "geepack",
+    "MESS",
+    "psych",
+    "Hmisc",
+    "glmnet",
+    "boot"
+    )
 
-devtools::install_github('https://github.com/skoval/coxph.risk')
-devtools::install_github('https://github.com/marskar/lcmodels')
+Install_And_Load <- function(packages) {
+  k <- packages[!(packages %in% installed.packages()[,"Package"])];
+  if(length(k))
+  {install.packages(k, repos="https://cran.rstudio.com/");}
 
-# Read in my personal defined functions and the Kovalchik prediction function
-source(here("hilary_functions.R"))
+  for(package_name in packages)
+  {library(package_name,character.only=TRUE, quietly = TRUE);}
+}
+Install_And_Load(packages)
+
+usethis::use_git_config(user = "marskar", user.name = "Martin Skarzynski", user.email = "marskar@gmail.com")
+
+devtools::install_github('marskar/coxph_risk')
+devtools::install_github('marskar/lcmodels')
+
+# Function to create "not in" operator
+'%!in%' <- function(x,y)!('%in%'(x,y))
 source(here("kovalchik.R"))
 
 
@@ -20,6 +45,7 @@ plco = readRDS('plco.rds')
 # In the PLCO dataset, impute missing family history values to 0
 plco$fam.lung.trend <- ifelse(is.na(plco$fam.lung.trend), 0, plco$fam.lung.trend)
 plco.control <- subset(plco, control.group==1) # control arm of PLCO who had no chest xray
+
 # Remove people with <30 pack-years and age<55 or age>74 from NLST
 nlst <- nlst %>% 
     filter(pkyears.cat!="[0,30)" & age>=55 & age<=74) %>% 
@@ -219,11 +245,6 @@ tab3risk("any.spiculation", 1)
 # Prevalence/probs for any poorly defined margins or any unable to characterize margins
 100*nrow(dplyr::filter(data.screen.abn.pos, interval==2 & (any.poor.def==1 | any.margin.unab==1)))/nrow(filter(data.screen.abn.pos, interval==2))
 100*with(dplyr::filter(data.screen.abn.pos, interval==2 & (any.poor.def==1 | any.margin.unab==1)), quantile(post.risk.abn.pos, probs=c(0.25, 0.5, 0.75)))
-
-# Other numbers
-c(sum(data.screen.abn.pos$case), nrow(data.screen.abn.pos), sum(data.screen.abn.pos$case)/nrow(data.screen.abn.pos))
-with(dplyr::filter(data.screen.abn.pos, interval==2), CrossTable(screen.comb, case))   # numbers considered for Markov assumption test
-range_without_outliers(dplyr::filter(data.screen.abn.pos, interval==1)$prescr.1yrisk) # this uses my function defined in hilary_functions.R
 
 #### Properties of NLST screening, abnormal screens ####
 # Is pre-screening risk important?
