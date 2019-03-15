@@ -27,8 +27,6 @@ Install_And_Load <- function(packages) {
 }
 Install_And_Load(packages)
 
-usethis::use_git_config(user = "marskar", user.name = "Martin Skarzynski", user.email = "marskar@gmail.com")
-
 devtools::install_github('marskar/coxph_risk')
 devtools::install_github('marskar/lcmodels')
 
