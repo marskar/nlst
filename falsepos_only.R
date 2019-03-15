@@ -377,6 +377,7 @@ poisson.test(round(sum(data.screen.abn.pos$cvpred),0), sum(data.screen.abn.pos$c
 ### Calculate AUCs ###
 ## Optimism-corrected AUCs - have to use logistic models for this, and have to actually add the interaction terms to the dataset.
   # http://thestatsgeek.com/2014/10/04/adjusting-for-optimismoverfitting-in-measures-of-predictive-ability-using-bootstrapping/
+# install.packages('rms')
 library(rms)
 data.screen.abn.pos <- mutate(data.screen.abn.pos, logit1yriskdiamcat0 = logit1yrisk*I(diam.cat=="0"), 
                               logit1yriskdiamcat4_5 = logit1yrisk*I(diam.cat=="4-5"),
@@ -406,7 +407,7 @@ prq <- with(dplyr::filter(data.screen.abn.pos, interval==2), quantile(post.risk.
 prq_ar_end <- c(prq[1]-0.003, prq[2]-0.003, prq[3]+0.003)
 prq
 
-png(file="/Users/robbinsh_mac/Dropbox/IARC/NCI/NLST/Figures/abnormals_density.png",width=1200,height=850)
+png(file=here("abnormals_density.png"),width=1200,height=850)
 ggplot(data=dplyr::filter(data.screen.abn.pos, interval==2)) + theme_bw() +
   theme(axis.title = element_text(size=30), axis.text = element_text(size=28), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
   scale_y_continuous(name="Density", breaks=NULL) +
