@@ -1,4 +1,4 @@
-#### Data loading and setup ####
+#### Setup ####
 
 # Read in library functions including Stephanie's coxph.risk which I installed from the local tar.gz file
 packages <- c(
@@ -21,34 +21,41 @@ not_installed <- packages[!(packages %in% installed.packages()[,"Package"])]
 if(length(not_installed)) install.packages(not_installed)
 all(lapply(packages, require, character.only = TRUE))
 
+# Read in the Kovalchik prediction function
+source(here("R/kovalchik.R"))
+
 devtools::install_github('marskar/coxph_risk')
 devtools::install_github('marskar/lcmodels')
 
 # Function to create "not in" operator
 '%!in%' <- function(x,y)!('%in%'(x,y))
-source(here("kovalchik.R"))
-
 
 # Load PLCO and NLST data sets. New versions provided by Li Cheung on 11 July 2016, 14 July 2016, 20 July 2016, 8 Aug 2016.
 # Load NLST and PLCO data
-nlst = readRDS('nlst.rds')
-plco = readRDS('plco.rds')
+nlst = readRDS('data/nlst.rds')
+plco = readRDS('data/plco.rds')
 
 # In the PLCO dataset, impute missing family history values to 0
 plco$fam.lung.trend <- ifelse(is.na(plco$fam.lung.trend), 0, plco$fam.lung.trend)
 plco.control <- subset(plco, control.group==1) # control arm of PLCO who had no chest xray
 
 # Remove people with <30 pack-years and age<55 or age>74 from NLST
-nlst <- nlst %>% 
-    filter(pkyears.cat!="[0,30)" & age>=55 & age<=74) %>% 
+nlst <- nlst %>%
+    filter(pkyears.cat != "[0,30)" & age >= 55 & age <= 74) %>%
     # Make a new pack-years variable to get rid of the [0,30) level
-    mutate(pkyears.cat.clone=ifelse(pkyears.cat == "[30,40)", "[30,40)",
-        ifelse(pkyears.cat == "[40,50)", "[40,50)",
-               ifelse(pkyears.cat == "[50,Inf]", "[50,Inf]", NA)))) %>% 
-    mutate(pkyears.cat=as.factor(pkyears.cat.clone)) %>% 
+    mutate(pkyears.cat.clone = ifelse(
+        pkyears.cat == "[30,40)",
+        "[30,40)",
+        ifelse(
+            pkyears.cat == "[40,50)",
+            "[40,50)",
+            ifelse(pkyears.cat == "[50,Inf]", "[50,Inf]", NA)
+        )
+    )) %>%
+    mutate(pkyears.cat = as.factor(pkyears.cat.clone)) %>%
     # Make a variable for days to diagnosis
-    mutate(days_to_dx = ifelse(case==1, 365*incidence.years, NA)) %>% 
-   identity()
+    mutate(days_to_dx = ifelse(case == 1, 365 * incidence.years, NA)) %>%
+    identity()
 
 # Make a subset of NLST data with the LCRAT variables that we will need later
 varlist <- c("female","race","edu6","fam.lung.trend","emp","bmi","cpd","pkyears.cat","age","qtyears","smkyears")
