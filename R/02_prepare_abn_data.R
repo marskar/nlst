@@ -1,20 +1,25 @@
 #### Load packages ####
-pkgs = c("here", "dplyr","ggplot2","haven","reshape", "purrr")
-lapply(pkgs, require, character.only  = TRUE)
+packages = c(
+    "here",
+    "dplyr"
+    )
 
-# Read in my personal defined functions
-source(here("hilary_functions.R"))
+not_installed <- packages[!(packages %in% installed.packages()[,"Package"])]
+if(length(not_installed)) install.packages(not_installed)
+all(lapply(packages, require, character.only = TRUE))
+
+
 
 #### Load data  ####
 # Load abnormalities dataset https://biometry.nci.nih.gov/plcosub/lung/2009-00516-201204-0017-lung-mortality-risk/nlst/mortalityrisk_abn_080216.csv.zip/@@display-file from https://biometry.nci.nih.gov/plcosub/lung/2009-00516-201204-0017-lung-mortality-risk/nlst
-abn <- read.csv(here("mortalityrisk_abn_080216.csv"))
+abn <- read.csv(here("data/mortalityrisk_abn_080216.csv"))
 
 #### Load Lung-RADS data ####
 
-lrads.pl = readRDS('lungrads.rds')
+lrads = readRDS('data/lungrads.rds')
 
 #### Organize abnormality data ####
-abn.pl <- abn %>% group_by(pid, STUDY_YR) %>%
+abn_lrads_merged <- abn %>% group_by(pid, STUDY_YR) %>%
   summarise(longest.diam = max(SCT_LONG_DIA, na.rm=T),
             #longest.perp.diam = max(SCT_PERP_DIA, na.rm=T),
             any.nodule = as.numeric(any(SCT_AB_DESC==51, na.rm=T)),
@@ -56,11 +61,7 @@ abn.pl <- abn %>% group_by(pid, STUDY_YR) %>%
             any.growth = as.numeric(any(sct_ab_gwth==2, na.rm=T)),
             any.new.nodule = as.numeric(any(SCT_AB_DESC==51 & sct_ab_preExist==1, na.rm=T)),   # EDITED 12 OCT 2018 to add variable for new nodule
             any.new.nodule.4.7.mm = as.numeric(any(SCT_AB_DESC==51 & SCT_LONG_DIA>=4 & SCT_LONG_DIA<=7 & sct_ab_preExist==1, na.rm=T))  # EDITED 12 OCT 2018 to add variable for new nodules 4-7mm
-            )
-# abn.pl$lobe.count <- with(abn.pl, any.right.upper+any.right.mid+any.right.lower+
-                           #  any.left.upper+any.lingula+any.left.lower)
-
-abn.pl %>%
+            ) %>%
     # Replace study year with interval
     mutate(interval = case_when(
     STUDY_YR==0 ~ 1,
@@ -73,11 +74,8 @@ abn.pl %>%
     # Add a variable for presence of adenopathy or consolidation
     mutate(adenop.consol = as.numeric(adenopathy == 1 | consolidation == 1)) %>% 
     # Combine the lrads and abn datasets
-    merge(lrads.pl, by = c("pid", "interval"), all.x = TRUE, all.y = TRUE) %>% 
+    merge(lrads, by = c("pid", "interval"), all.x = TRUE, all.y = TRUE) %>% 
     mutate(LRcat = as.factor(LRcat)) %>% 
-    saveRDS(file = "abn_lrads_merged.rds")
-
-
     # Make an LRcat variable relevant for negative screen groups
     mutate(LRcatcol.neg = case_when(
         LRcat=="1" ~ 1, 
@@ -91,11 +89,5 @@ abn.pl %>%
         LRcat=="4A" ~ 4, 
         LRcat=="4B" ~ 5,
         LRcat=="4X" ~ 6,
-        LRcat %in% c("3 or 4A", "3,4A, or 4B", "4A or 4B") ~ 7))
-
-# Note: the Lung-RADS category is missing for 485 screens, but 470 are at T2 (15 at T1).
-table(abn_lrads_merged[is.na(abn_lrads_merged$LRcat),]$interval)
-table(abn_lrads_merged[is.na(abn_lrads_merged$LRcat),]$interval)
-abn_lrads_merged$LRcat
-# Save to disk
-save(abn.pl.all, file=here("abn.spl.20181126.rdata"))
+        LRcat %in% c("3 or 4A", "3,4A, or 4B", "4A or 4B") ~ 7)) %>% 
+    saveRDS(file = "data/abnorm_lrads_merged.rds")
