@@ -243,7 +243,7 @@ glm.int.abn <- glm(case ~ log1yrisk + log1yrisk:adenop.consol -1, data=data.inte
 data.interval.abn$post.risk.abn <- fitted.values(glm.int.abn)
 glm.screen.neg.abn <- glm(case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema -1, data=data_screen_abn_emph.neg, family=binomial(link='log'), na.action=na.exclude)
 data_screen_abn_emph.neg$post.risk.abn <- fitted.values(glm.screen.neg.abn)
-View(data_screen_abn_emph.neg)
+
 
 glm_screen_neg_abn <- glm(case ~ log1yrisk -1, data=data_screen_abn_emph.neg, family=binomial(link='log'), na.action=na.exclude)
 
@@ -252,7 +252,7 @@ glm_screen_neg_abn_emph <- glm(case ~ log1yrisk + p_emph -1, data=data_screen_ab
 glm_screen_neg_abn
 glm_screen_neg_abn_emph
 
-nrow(emph)
+
 # --------------------------- run code to this line for data setup ----------------------------- #
 
 
