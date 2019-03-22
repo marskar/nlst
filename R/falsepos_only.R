@@ -17,15 +17,9 @@ packages <- c(
     "boot"
     )
 
-Install_And_Load <- function(packages) {
-  k <- packages[!(packages %in% installed.packages()[,"Package"])];
-  if(length(k))
-  {install.packages(k, repos="https://cran.rstudio.com/");}
-
-  for(package_name in packages)
-  {library(package_name,character.only=TRUE, quietly = TRUE);}
-}
-Install_And_Load(packages)
+not_installed <- packages[!(packages %in% installed.packages()[,"Package"])]
+if(length(not_installed)) install.packages(not_installed)
+all(lapply(packages, require, character.only = TRUE))
 
 devtools::install_github('marskar/coxph_risk')
 devtools::install_github('marskar/lcmodels')
@@ -54,7 +48,7 @@ nlst <- nlst %>%
     mutate(pkyears.cat=as.factor(pkyears.cat.clone)) %>% 
     # Make a variable for days to diagnosis
     mutate(days_to_dx = ifelse(case==1, 365*incidence.years, NA)) %>% 
-    identity()
+   identity()
 
 # Make a subset of NLST data with the LCRAT variables that we will need later
 varlist <- c("female","race","edu6","fam.lung.trend","emp","bmi","cpd","pkyears.cat","age","qtyears","smkyears")
@@ -73,6 +67,7 @@ lcratvars <- c("age","female","smkyears","qtyears","cpd","race","emp","fam.lung.
 nlst_lcrat <- as.data.frame(cbind(nlst[, lcratvars], pid=nlst$pid, lss=as.numeric(nlst$lss)))
 # lcmodels::lcmodels(nlst_lcrat) 
 
+# TODO Data should include all positives, not just false positives
 # Subset to CT arm in NLST and make a pos/neg variable for the first, second, and third screens
 nlst$T0posneg <- ifelse(nlst$truefalse_scrnres_ly0 %in% c(4,5,6), 0, NA)
 nlst$T0posneg <- ifelse(nlst$truefalse_scrnres_ly0 %in% c(1,2,3), 1, nlst$T0posneg)

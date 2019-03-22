@@ -1,3 +1,6 @@
+data
+figs
+manuscripts
 *.rdata
 *.rds
 *.Rproj
