@@ -2,6 +2,7 @@
 
 packages <- c(
     "dplyr",
+    "tidyr",
     "ggplot2",
     "readr",
     "here",
@@ -15,7 +16,7 @@ packages <- c(
     "Hmisc",
     "glmnet",
     "boot"
-    )
+)
 
 not_installed <- packages[!(packages %in% installed.packages()[,"Package"])]
 if(length(not_installed)) install.packages(not_installed)
@@ -181,7 +182,8 @@ data_screen_abn_emph <-
         all.x = T,
         all.y = F
     )
-
+sum(data.screen$pid %in% abn$pid)
+sum(emph$pid %in% data.screen$pid)
 abnorm_lrads_merged <- readRDS(here('data/abnorm_lrads_merged.rds'))
 # 
 # 
@@ -244,13 +246,20 @@ data.interval.abn$post.risk.abn <- fitted.values(glm.int.abn)
 glm.screen.neg.abn <- glm(case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema -1, data=data_screen_abn_emph.neg, family=binomial(link='log'), na.action=na.exclude)
 data_screen_abn_emph.neg$post.risk.abn <- fitted.values(glm.screen.neg.abn)
 
+data_screen_abn_emph_neg_drop_na <- data_screen_abn_emph.neg %>% drop_na(p_emph)
 
-glm_screen_neg_abn <- glm(case ~ log1yrisk -1, data=data_screen_abn_emph.neg, family=binomial(link='log'), na.action=na.exclude)
+glm_screen_neg_abn <- glm(case ~ log1yrisk -1, data=data_screen_abn_emph_neg_drop_na, family=binomial(link='log'), na.action=na.exclude)
 
+predictions <- predict(glm_screen_neg_abn, type = "response")
+pROC::auc(data_screen_abn_emph_neg_drop_na$case, predictions)
 
-glm_screen_neg_abn_emph <- glm(case ~ log1yrisk + p_emph -1, data=data_screen_abn_emph.neg, family=binomial(link='log'), na.action=na.exclude)
-glm_screen_neg_abn
-glm_screen_neg_abn_emph
+glm_screen_neg_abn_emph <- glm(case ~ log1yrisk + p_emph -1, data=data_screen_abn_emph_neg_drop_na, family=binomial(link='log'), na.action=na.exclude)
+
+predictions_emph <- predict(glm_screen_neg_abn_emph, type = "response")
+pROC::auc(data_screen_abn_emph_neg_drop_na$case, predictions_emph)
+
+summary(glm_screen_neg_abn)
+summary(glm_screen_neg_abn_emph)
 
 
 # --------------------------- run code to this line for data setup ----------------------------- #
