@@ -72,7 +72,7 @@ cox.death <- coxph(Surv(years.followed, other.cause.death) ~
 lcratvars <- c("age","female","smkyears","qtyears","cpd","race","emp","fam.lung.trend","bmi","edu6","pkyears.cat")
 
 nlst_lcrat <- as.data.frame(cbind(nlst[, lcratvars], pid=nlst$pid, lss=as.numeric(nlst$lss)))
-# lcmodels::lcmodels(nlst_lcrat) 
+lcmodels::lcmodels(nlst_lcrat)
 
 # TODO Data should include all positives, not just false positives
 nlst$positive <- ifelse(nlst$truefalse_scrnres_ly0 %in% c(1,2,3), 1, 0)
@@ -90,7 +90,8 @@ nlst$T2posneg <- ifelse(nlst$truefalse_scrnres_ly2 %in% c(1,2,3), 1, nlst$T2posn
 # nlst %>% dfilt(screen_group=="CT") %>% summarise(total=n(), mean5yr = mean(prescr.5yrisk.T0))  # Mean risk for Tricia
 
 # Subset to CT arm and create screening history variables
-nlst.CT <- subset(nlst, screen_group=="CT")
+nlst.CT <- subset(positives, screen_group=="CT")
+
 nlst.CT <- mutate(nlst.CT, hist.T0.T1 = 1*(T0posneg==0 & T1posneg==0) + 2*(T0posneg==0 & T1posneg==1) + 3*(T0posneg==1 & T1posneg==0) + 4*(T0posneg==1 & T1posneg==1))
 nlst.CT$hist.T0.T1 <- factor(nlst.CT$hist.T0.T1, levels=c(1,2,3,4), labels=c("Neg-Neg","Neg-Pos","Pos-Neg","Pos-Pos"))
 nlst.CT <- mutate(nlst.CT, hist.T1.T2 = 1*(T1posneg==0 & T2posneg==0) + 2*(T1posneg==0 & T2posneg==1) + 3*(T1posneg==1 & T2posneg==0) + 4*(T1posneg==1 & T2posneg==1))

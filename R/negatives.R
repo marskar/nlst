@@ -84,8 +84,13 @@ nlst$T2posneg <- ifelse(nlst$truefalse_scrnres_ly2 %in% c(1,2,3), 1, nlst$T2posn
 nlst$prescr.1yrisk.T0 <- risk.kovalchik(0, 1, nlst, LCRAT, cox.death)  # add 1y risk to NLST dataset for descriptive stats
 
 # Subset to CT arm and create screening history variables
-nlst.CT <- subset(nlst, screen_group=="CT")
-nlst.CT <- mutate(nlst.CT, hist.T0.T1 = 1*(T0posneg==0 & T1posneg==0) + 2*(T0posneg==0 & T1posneg==1) + 3*(T0posneg==1 & T1posneg==0) + 4*(T0posneg==1 & T1posneg==1))
+nlst.CT <- subset(nlst, screen_group == "CT") %>%
+    mutate(
+        hist.T0.T1 = 1 * (T0posneg == 0 &
+                              T1posneg == 0) + 2 * (T0posneg == 0 &
+                                                        T1posneg == 1) + 3 * (T0posneg == 1 &
+                                                                                  T1posneg == 0) + 4 * (T0posneg == 1 & T1posneg == 1)
+    )
 nlst.CT$hist.T0.T1 <- factor(nlst.CT$hist.T0.T1, levels=c(1,2,3,4), labels=c("Neg-Neg","Neg-Pos","Pos-Neg","Pos-Pos"))
 nlst.CT <- mutate(nlst.CT, hist.T1.T2 = 1*(T1posneg==0 & T2posneg==0) + 2*(T1posneg==0 & T2posneg==1) + 3*(T1posneg==1 & T2posneg==0) + 4*(T1posneg==1 & T2posneg==1))
 nlst.CT$hist.T1.T2 <- factor(nlst.CT$hist.T1.T2, levels=c(1,2,3,4), labels=c("Neg-Neg","Neg-Pos","Pos-Neg","Pos-Pos"))
@@ -243,7 +248,8 @@ data_screen_abn_emph.neg$post.risk.neg.overall <- fitted.values(glm.screen.neg)
 # With specific CT findings
 glm.int.abn <- glm(case ~ log1yrisk + log1yrisk:adenop.consol -1, data=data.interval.abn, family=binomial(link='log'))
 data.interval.abn$post.risk.abn <- fitted.values(glm.int.abn)
-glm.screen.neg.abn <- glm(case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema -1, data=data_screen_abn_emph.neg, family=binomial(link='log'), na.action=na.exclude)
+glm.screen.neg.abn <- glm(case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema -1, data=data_screen_abn_emph_neg_drop_na, family=binomial(link='log'), na.action=na.exclude)
+
 data_screen_abn_emph.neg$post.risk.abn <- fitted.values(glm.screen.neg.abn)
 
 data_screen_abn_emph_neg_drop_na <- data_screen_abn_emph.neg %>% drop_na(p_emph)
@@ -253,13 +259,20 @@ glm_screen_neg_abn <- glm(case ~ log1yrisk -1, data=data_screen_abn_emph_neg_dro
 predictions <- predict(glm_screen_neg_abn, type = "response")
 pROC::auc(data_screen_abn_emph_neg_drop_na$case, predictions)
 
-glm_screen_neg_abn_emph <- glm(case ~ log1yrisk + p_emph -1, data=data_screen_abn_emph_neg_drop_na, family=binomial(link='log'), na.action=na.exclude)
+glm_screen_neg_abn_emph_logit <- glm(case ~ log1yrisk + I(logit(p_emph)) -1, data=data_screen_abn_emph_neg_drop_na, family=binomial(link='log'), na.action=na.exclude)
 
+glm_screen_neg_abn_emph <- glm(case ~ log1yrisk + p_emph -1, data=data_screen_abn_emph_neg_drop_na, family=binomial(link='log'), na.action=na.exclude)
 predictions_emph <- predict(glm_screen_neg_abn_emph, type = "response")
+predictions_emph_logit <- predict(glm_screen_neg_abn_emph_logit, type = "response")
+predictions_physician_emph_logit <- predict(glm.screen.neg.abn, type = "response")
 pROC::auc(data_screen_abn_emph_neg_drop_na$case, predictions_emph)
+pROC::auc(data_screen_abn_emph_neg_drop_na$case, predictions_emph_logit)
+pROC::auc(data_screen_abn_emph_neg_drop_na$case, predictions_physician_emph_logit)
 
 summary(glm_screen_neg_abn)
 summary(glm_screen_neg_abn_emph)
+summary(glm_screen_neg_abn_emph_logit)
+summary(glm.screen.neg.abn)
 
 
 # --------------------------- run code to this line for data setup ----------------------------- #
