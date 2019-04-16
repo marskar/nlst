@@ -1,25 +1,33 @@
 #### Setup ####
 
-# Read in library functions including Stephanie's coxph.risk which I installed from the local tar.gz file
-packages <- c(
-    "lmtest",
-    "here",
-    "dplyr",
-    "ggplot2",
-    "survival",
-    "gmodels",
-    "devtools",
-    "geepack",
-    "MESS",
-    "psych",
-    "Hmisc",
-    "glmnet",
-    "boot"
+# List packages to be loaded (and installed if needed)
+packages <-
+    c(
+        "lmtest",
+        "here",
+        "dplyr",
+        "ggplot2",
+        "survival",
+        "gmodels",
+        "devtools",
+        "geepack",
+        "MESS",
+        "psych",
+        "Hmisc",
+        "glmnet",
+        "boot"
     )
 
-not_installed <- packages[!(packages %in% installed.packages()[,"Package"])]
-if(length(not_installed)) install.packages(not_installed)
-all(lapply(packages, require, character.only = TRUE))
+# List packages that are not installed
+not_installed <-
+    packages[!(packages %in% installed.packages()[, "Package"])]
+
+# Install packages that are not installed
+if (length(not_installed))
+    install.packages(not_installed)
+
+# Load all packages
+lapply(packages, require, character.only = TRUE)
 
 # Read in the Kovalchik prediction function
 source(here("R/kovalchik.R"))
@@ -28,7 +36,9 @@ devtools::install_github('marskar/coxph_risk')
 devtools::install_github('marskar/lcmodels')
 
 # Function to create "not in" operator
-'%!in%' <- function(x,y)!('%in%'(x,y))
+'%!in%' <- function(x, y)
+    ! ('%in%'(x, y))
+
 
 # Load PLCO and NLST data sets. New versions provided by Li Cheung on 11 July 2016, 14 July 2016, 20 July 2016, 8 Aug 2016.
 # Load NLST and PLCO data
@@ -36,23 +46,22 @@ nlst = readRDS('data/nlst.rds')
 plco = readRDS('data/plco.rds')
 
 # In the PLCO dataset, impute missing family history values to 0
-plco$fam.lung.trend <- ifelse(is.na(plco$fam.lung.trend), 0, plco$fam.lung.trend)
-plco_control <- subset(plco, control.group==1) # control arm of PLCO who had no chest xray
+plco$fam.lung.trend <-
+    ifelse(is.na(plco$fam.lung.trend),
+           0,
+           plco$fam.lung.trend)
+
+# Control arm of PLCO who had no chest xray
+plco_control <- subset(plco, control.group == 1)
 
 # Remove people with <30 pack-years and age<55 or age>74 from NLST
-nlst <- nlst %>%
-    filter(pkyears.cat != "[0,30)" & age >= 55 & age <= 74) %>%
-    # Make a new pack-years variable to get rid of the [0,30) level
-    mutate(pkyears.cat.clone = ifelse(
-        pkyears.cat == "[30,40)",
-        "[30,40)",
-        ifelse(
-            pkyears.cat == "[40,50)",
-            "[40,50)",
-            ifelse(pkyears.cat == "[50,Inf]", "[50,Inf]", NA)
-        )
-    )) %>%
-    mutate(pkyears.cat = as.factor(pkyears.cat.clone)) %>%
+nlst <-
+    nlst %>%
+    filter(pkyears.cat != "[0,30)"
+           & age >= 55
+           & age <= 74) %>%
+    # Drop levels to remove pack-years variable [0,30) empty level
+    droplevels() %>%
     # Make a variable for days to diagnosis
     mutate(days_to_dx = ifelse(case == 1, 365 * incidence.years, NA)) %>%
     identity()
@@ -72,33 +81,43 @@ varlist <-
         "qtyears",
         "smkyears"
     )
-nlst.sub <- as.data.frame(cbind(nlst[,varlist], pid=nlst$pid, lss=as.numeric(nlst$lss)))
+
+nlst_sub <- nlst %>% select(varlist, pid, lss)
 
 # To later calculate pre-screening risk, we must first fit the incidence model and other-cause death models in PLCO.
-LCRAT <- coxph(Surv(incidence.years, case) ~ 
-                 female+race+edu6+fam.lung.trend+emp+I(bmi<=18.5)+I(cpd>20)+as.factor(pkyears.cat)+
-                 I(log(age))+I(log(bmi))+I(log(qtyears+1))+smkyears,data = plco_control)
-cox.death <- coxph(Surv(years.followed, other.cause.death) ~ 
-                     female+race+edu6+emp+I(bmi <= 18.5)+I(cpd>20)+as.factor(pkyears.cat)+I((age)^2)+I((bmi-25)^2)+
-                     I(log(qtyears+1))+smkyears, data = plco_control)
-
-lcratvars <-
-    c(
-        "age",
-        "female",
-        "smkyears",
-        "qtyears",
-        "cpd",
-        "race",
-        "emp",
-        "fam.lung.trend",
-        "bmi",
-        "edu6",
-        "pkyears.cat"
+LCRAT <-
+    coxph(
+        Surv(incidence.years, case)
+        ~ female
+        + race
+        + edu6
+        + fam.lung.trend
+        + emp
+        + I(bmi <= 18.5)
+        + I(cpd > 20)
+        + as.factor(pkyears.cat)
+        + I(log(age))
+        + I(log(bmi))
+        + I(log(qtyears + 1))
+        + smkyears,
+        data = plco_control
     )
 
-nlst_lcrat <- as.data.frame(cbind(nlst[, lcratvars], pid=nlst$pid, lss=as.numeric(nlst$lss)))
-lcmodels::lcmodels(nlst_lcrat)
+cox.death <-
+    coxph(
+        Surv(years.followed, other.cause.death)
+        ~ female
+        + race
+        + edu6
+        + emp
+        + I(bmi <= 18.5)
+        + I(cpd > 20)
+        + as.factor(pkyears.cat)
+        + I((age) ^ 2) + I((bmi - 25) ^ 2)
+        + I(log(qtyears + 1))
+        + smkyears,
+        data = plco_control
+    )
 
 # TODO Data should include all positives, not just false positives
 # positives <-
@@ -113,34 +132,43 @@ lcmodels::lcmodels(nlst_lcrat)
 # positives
 
 # Subset to CT arm in NLST and make a pos/neg variable for the first, second, and third screens
-nlst <- nlst %>% mutate(T0posneg = case_when(
-    truefalse_scrnres_ly0 %in% c(4, 5, 6) ~ 0,
-    truefalse_scrnres_ly0 %in% c(1, 2, 3) ~ 1
-)) %>% mutate(T1posneg = case_when(
-    truefalse_scrnres_ly1 %in% c(4, 5, 6) ~ 0,
-    truefalse_scrnres_ly1 %in% c(1, 2, 3) ~ 1
-)) %>% mutate(T2posneg = case_when(
-    truefalse_scrnres_ly2 %in% c(4, 5, 6) ~ 0,
-    truefalse_scrnres_ly2 %in% c(1, 2, 3) ~ 1
-))
+nlst <-
+    nlst %>%
+    mutate(T0posneg = case_when(
+        truefalse_scrnres_ly0 %in% c(4, 5, 6) ~ 0,
+        truefalse_scrnres_ly0 %in% c(1, 2, 3) ~ 1
+    )) %>%
+    mutate(T1posneg = case_when(
+        truefalse_scrnres_ly1 %in% c(4, 5, 6) ~ 0,
+        truefalse_scrnres_ly1 %in% c(1, 2, 3) ~ 1
+    )) %>%
+    mutate(T2posneg = case_when(
+        truefalse_scrnres_ly2 %in% c(4, 5, 6) ~ 0,
+        truefalse_scrnres_ly2 %in% c(1, 2, 3) ~ 1
+    ))
 
 # Subset to CT arm and create screening history variables
-nlst_CT <- nlst %>% 
+nlst_CT <-
+    nlst %>%
     subset(screen_group == "CT") %>%
-    mutate(hist.T0.T1 =
-        case_when(
-            T0posneg == 0 & T1posneg == 0 ~ 1,
-            T0posneg == 0 & T1posneg == 1 ~ 2,
-            T0posneg == 1 & T1posneg == 0 ~ 3,
-            T0posneg == 1 & T1posneg == 1 ~ 4
-        )) %>% 
-    mutate(hist.T1.T2 =
-        case_when(
-            T1posneg == 0 & T2posneg == 0 ~ 1,
-            T1posneg == 0 & T2posneg == 1 ~ 2,
-            T1posneg == 1 & T2posneg == 0 ~ 3,
-            T1posneg == 1 & T2posneg == 1 ~ 4
-        )) %>% 
+    mutate(
+        hist.T0.T1 =
+            case_when(
+                T0posneg == 0 & T1posneg == 0 ~ 1,
+                T0posneg == 0 & T1posneg == 1 ~ 2,
+                T0posneg == 1 & T1posneg == 0 ~ 3,
+                T0posneg == 1 & T1posneg == 1 ~ 4
+            )
+    ) %>%
+    mutate(
+        hist.T1.T2 =
+            case_when(
+                T1posneg == 0 & T2posneg == 0 ~ 1,
+                T1posneg == 0 & T2posneg == 1 ~ 2,
+                T1posneg == 1 & T2posneg == 0 ~ 3,
+                T1posneg == 1 & T2posneg == 1 ~ 4
+            )
+    ) %>%
     mutate_at(vars(hist.T0.T1, hist.T1.T2),
               funs(factor(
                   .,
@@ -155,14 +183,14 @@ nlst_CT <- nlst %>%
   # inadequate image, left study, refused, wrong screen, erroneous report of LC, form not submitted (no missing values of scr_res0).
   # Case status: case=1 AND either of (true-pos at T1 or T1 is coded as "not expected: cancer/death in screening window")
 nlst.CT.T1.scrisk <-
-    dplyr::filter(nlst_CT,
-                  truefalse_scrnres_ly0 %in% c(2, 3, 4, 5) &
-                      scr_res1 %!in% c(10, 11, 15, 17, 95, 97)) %>%
-    mutate(case_T1_screen = if_else(case == 1 &
-                                        (
-                                            truefalse_scrnres_ly1 == 1 | scr_res1 %in% c(23, 24)
-                                        ),
-                                    1, 0))
+    nlst_CT %>%
+    filter(
+        truefalse_scrnres_ly0 %in% c(2, 3, 4, 5)
+        & scr_res1 %!in% c(10, 11, 15, 17, 95, 97)
+        ) %>%
+    mutate(case_T1_screen = if_else(
+        case == 1
+        & ( truefalse_scrnres_ly1 == 1 | scr_res1 %in% c(23, 24) ), 1, 0))
 ### Create dataset for risk from T1 to T2.
 # At risk for screen-detected at T2: either false-positive or true-negative at T1, and did not have any of the following at T2:
 # inadequate image, left study, refused, wrong screen, erroneous report of LC, form not submitted (no missing values of scr_res0).
@@ -190,7 +218,7 @@ data.screen <-
                                                                       nrow(nlst.CT.T2.scrisk)))
     ) %>%
     # Merge this back with covariates from NLST
-    merge(nlst.sub, by = "pid", all.x = TRUE) %>%
+    merge(nlst_sub, by = "pid", all.x = TRUE) %>%
     # Add a variable for lagged screen result & a 6-level variable for all combinations
     group_by(pid) %>%
     mutate(lag.screen = dplyr::lag(screen.result, order_by = interval)) %>%
@@ -271,6 +299,7 @@ all.subj.pos <- mutate(all.subj.pos, age.cat=as.factor(ifelse(age>=55 & age<60, 
 
 # Run the main models
 # Fit an overall model with one exponent
+
 glm.screen.pos <- glm(case ~ log1yrisk -1, data=data.screen.abn.pos, family=binomial(link='log'))
 # Model with abnormalities
 glm.screen.pos.abn.log <- glm(case ~ log1yrisk:diam.cat + log1yrisk:any.growth + log1yrisk:any.upper + 
