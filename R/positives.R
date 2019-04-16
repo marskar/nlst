@@ -184,6 +184,7 @@ nlst_CT <-
 # Case status: case=1 AND either of (true-pos at T1 or T1 is coded as "not expected: cancer/death in screening window")
 
 
+
 nlst_CT_T1_scrisk <-
     nlst_CT %>%
     filter(truefalse_scrnres_ly0 %in% c(2, 3, 4, 5)
@@ -201,7 +202,8 @@ nlst_CT_T1_scrisk <-
 # inadequate image, left study, refused, wrong screen, erroneous report of LC, form not submitted (no missing values of scr_res0).
 # Case status: case=1 AND either of (true-pos at T2 or T2 is coded as "not expected: cancer/death in screening window")
 
-nlst_CT_T1_scrisk <-
+nlst_CT_T2_scrisk <-
+    nlst_CT %>% 
     filter(truefalse_scrnres_ly1 %in% c(2, 3, 4, 5)
            & scr_res2 %!in% c(10, 11, 15, 17, 95, 97)) %>%
     mutate(case_T2_screen = if_else((
@@ -214,15 +216,20 @@ nlst_CT_T1_scrisk <-
 # Construct dataset to model risk of ALL screen-detected cancers (at T1 and T2)
 data.screen <-
     data.frame(
-        pid = c(nlst.CT.T1.scrisk$pid, nlst.CT.T2.scrisk$pid),
+        pid = c(nlst_CT_T1_scrisk$pid, nlst_CT_T2_scrisk$pid),
         case = c(
-            nlst.CT.T1.scrisk$case_T1_screen,
-            nlst.CT.T2.scrisk$case_T2_screen
+            nlst_CT_T1_scrisk$case_T1_screen,
+            nlst_CT_T2_scrisk$case_T2_screen
         ),
-        screen.result = c(nlst.CT.T1.scrisk$T0posneg, nlst.CT.T2.scrisk$T1posneg),
-        interval = c(rep(1, times = nrow(nlst.CT.T1.scrisk)), rep(2, times =
-                                                                      nrow(nlst.CT.T2.scrisk)))
+        screen_result = c(nlst_CT_T1_scrisk$T0posneg,
+                          nlst_CT_T2_scrisk$T1posneg),
+        interval = c(rep(1, times = nrow(nlst_CT_T1_scrisk)),
+                     rep(2, times = nrow(nlst_CT_T2_scrisk)))
     ) %>%
+    identity()
+
+data.screen
+    merge(nlst_sub, by = "pid", all.x = TRUE) %>%
     # Merge this back with covariates from NLST
     merge(nlst_sub, by = "pid", all.x = TRUE) %>%
     # Add a variable for lagged screen result & a 6-level variable for all combinations
