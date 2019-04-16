@@ -178,32 +178,38 @@ nlst_CT <-
     identity()
 
 ### Create dataset for risk from T0 to T1.
-  # 0 inadeq, 1 true-pos, 2 poss true-pos, 3 false-pos, 4 true-neg, 5 poss false-neg, 6 false-neg
+# 0 inadeq, 1 true-pos, 2 poss true-pos, 3 false-pos, 4 true-neg, 5 poss false-neg, 6 false-neg
 # At risk for screen-detected at T1: either false-positive or true-negative at T0, and did not have any of the following at T1:
-  # inadequate image, left study, refused, wrong screen, erroneous report of LC, form not submitted (no missing values of scr_res0).
-  # Case status: case=1 AND either of (true-pos at T1 or T1 is coded as "not expected: cancer/death in screening window")
-nlst.CT.T1.scrisk <-
+# inadequate image, left study, refused, wrong screen, erroneous report of LC, form not submitted (no missing values of scr_res0).
+# Case status: case=1 AND either of (true-pos at T1 or T1 is coded as "not expected: cancer/death in screening window")
+
+
+nlst_CT_T1_scrisk <-
     nlst_CT %>%
-    filter(
-        truefalse_scrnres_ly0 %in% c(2, 3, 4, 5)
-        & scr_res1 %!in% c(10, 11, 15, 17, 95, 97)
-        ) %>%
-    mutate(case_T1_screen = if_else(
-        case == 1
-        & ( truefalse_scrnres_ly1 == 1 | scr_res1 %in% c(23, 24) ), 1, 0))
+    filter(truefalse_scrnres_ly0 %in% c(2, 3, 4, 5)
+           & scr_res1 %!in% c(10, 11, 15, 17, 95, 97)) %>%
+    mutate(case_T1_screen = if_else((
+        truefalse_scrnres_ly1 == 1 |
+            scr_res1 %in% c(23, 24)
+    )
+    & case == 1,
+    1,
+    0))
+
 ### Create dataset for risk from T1 to T2.
 # At risk for screen-detected at T2: either false-positive or true-negative at T1, and did not have any of the following at T2:
 # inadequate image, left study, refused, wrong screen, erroneous report of LC, form not submitted (no missing values of scr_res0).
 # Case status: case=1 AND either of (true-pos at T2 or T2 is coded as "not expected: cancer/death in screening window")
-nlst.CT.T2.scrisk <-
-    dplyr::filter(nlst_CT,
-                  truefalse_scrnres_ly1 %in% c(2, 3, 4, 5) &
-                      scr_res2 %!in% c(10, 11, 15, 17, 95, 97)) %>%
-    mutate(case_T2_screen = if_else(case == 1 &
-                                        (
-                                            truefalse_scrnres_ly2 == 1 | scr_res2 %in% c(23, 24)
-                                        ),
-                                    1, 0))
+
+nlst_CT_T1_scrisk <-
+    filter(truefalse_scrnres_ly1 %in% c(2, 3, 4, 5)
+           & scr_res2 %!in% c(10, 11, 15, 17, 95, 97)) %>%
+    mutate(case_T2_screen = if_else((
+        truefalse_scrnres_ly2 == 1
+        | scr_res2 %in% c(23, 24)
+    ) & case == 1,
+    1,
+    0))
 
 # Construct dataset to model risk of ALL screen-detected cancers (at T1 and T2)
 data.screen <-
