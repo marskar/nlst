@@ -37,6 +37,8 @@ data.screen.abn.pos <- mutate(data.screen.abn.pos, diam.cat = 1*(longest.diam==0
                         3*(longest.diam>5 & longest.diam<=7) + 4*(longest.diam>7 & longest.diam<=10) +
                           5*(longest.diam>10 & longest.diam<=13) + 6*(longest.diam>13 & longest.diam<100))
 data.screen.abn.pos$diam.cat <- factor(data.screen.abn.pos$diam.cat, levels=c(1:6),labels=c("0","4-5","6-7","8-10","11-13","14+"))
+
+
 # Make another categorical variable for diameter that separates GG nodules by < >= 20 mm (I am not including this in abn.list)
 data.screen.abn.pos <- mutate(data.screen.abn.pos, diam.cat.GG = ifelse(any.GG==0 | longest.diam==0, diam.cat,
                         ifelse(any.GG==1 & longest.diam<20, 7, ifelse(any.GG==1 & longest.diam>=20 & longest.diam<99, 8, NA))))
