@@ -2,9 +2,9 @@
 title: Addition of Emphysema-CNN score improves upon prescreening risk calculated
   by LCRAT
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -57,6 +57,8 @@ glm_screen_neg <-
         data = data_screen_abn_neg_emp,
         family = binomial(link = 'log'))
 summary(glm_screen_neg)
+predictions <- predict(glm_screen_neg, type = "response")
+pROC::auc(data_screen_abn_neg_emp$case, predictions)
 
 # Prescreening risk + p_emph
 glm_screen_neg_pemph <-
@@ -65,6 +67,8 @@ glm_screen_neg_pemph <-
         family = binomial(link = 'log'),
         na.action = na.exclude)
 summary(glm_screen_neg_pemph)
+predictions <- predict(glm_screen_neg_pemph, type = "response")
+pROC::auc(data_screen_abn_neg_emp$case, predictions)
 
 # Prescreening risk + logit p_emph
 glm_screen_neg_logitpemph <-
@@ -73,6 +77,8 @@ glm_screen_neg_logitpemph <-
         family = binomial(link = 'log'),
         na.action = na.exclude)
 summary(glm_screen_neg_logitpemph)
+predictions <- predict(glm_screen_neg_logitpemph, type = "response")
+pROC::auc(data_screen_abn_neg_emp$case, predictions)
 
 # Prescreening risk + log p_emph
 glm_screen_neg_logpemph <-
@@ -81,6 +87,8 @@ glm_screen_neg_logpemph <-
         family = binomial(link = 'log'),
         na.action = na.exclude)
 summary(glm_screen_neg_logpemph)
+predictions <- predict(glm_screen_neg_logpemph, type = "response")
+pROC::auc(data_screen_abn_neg_emp$case, predictions)
 ```
 
 ### With physician-annotated features
@@ -94,24 +102,30 @@ glm_screen_neg_cons <-
         na.action = na.exclude
     )
 summary(glm_screen_neg_cons)
+predictions <- predict(glm_screen_neg_cons, type = "response")
+pROC::auc(data_screen_abn_neg_emp$case, predictions)
 
-glm_screen_neg_abn_emph <-
+glm_screen_neg_emph <-
     glm(
         case ~ log1yrisk + log1yrisk:emphysema - 1,
         data = data_screen_abn_neg_emp,
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
-summary(glm_screen_neg_abn_emph)
+summary(glm_screen_neg_emph)
+predictions <- predict(glm_screen_neg_emph, type = "response")
+pROC::auc(data_screen_abn_neg_emp$case, predictions)
 
-glm_screen_neg_abn_cons_emph <-
+glm_screen_neg_cons_emph <-
     glm(
         case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema - 1,
         data = data_screen_abn_neg_emp,
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
-summary(glm_screen_neg_abn_cons_emph)
+summary(glm_screen_neg_cons_emph)
+predictions <- predict(glm_screen_neg_cons_emph, type = "response")
+pROC::auc(data_screen_abn_neg_emp$case, predictions)
 
 glm_screen_neg_cons_emph_pemph <-
     glm(
@@ -121,4 +135,6 @@ glm_screen_neg_cons_emph_pemph <-
         na.action = na.exclude
     )
 summary(glm_screen_neg_cons_emph_pemph)
+predictions <- predict(glm_screen_neg_cons_emph_pemph, type = "response")
+pROC::auc(data_screen_abn_neg_emp$case, predictions)
 ```

@@ -1643,6 +1643,9 @@ summary(glm_screen_neg)</code></pre>
 ## AIC: 881.18
 ## 
 ## Number of Fisher Scoring iterations: 6</code></pre>
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre><code>## Area under the curve: 0.6287</code></pre>
 <pre class="r"><code># Prescreening risk + p_emph
 glm_screen_neg_pemph &lt;-
     glm(case ~ log1yrisk + p_emph - 1,
@@ -1673,6 +1676,9 @@ summary(glm_screen_neg_pemph)</code></pre>
 ## AIC: 879.93
 ## 
 ## Number of Fisher Scoring iterations: 6</code></pre>
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_pemph, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre><code>## Area under the curve: 0.6406</code></pre>
 <pre class="r"><code># Prescreening risk + logit p_emph
 glm_screen_neg_logitpemph &lt;-
     glm(case ~ log1yrisk + I(logit(p_emph)) - 1,
@@ -1703,6 +1709,9 @@ summary(glm_screen_neg_logitpemph)</code></pre>
 ## AIC: 878.93
 ## 
 ## Number of Fisher Scoring iterations: 6</code></pre>
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_logitpemph, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre><code>## Area under the curve: 0.6463</code></pre>
 <pre class="r"><code># Prescreening risk + log p_emph
 glm_screen_neg_logpemph &lt;-
     glm(case ~ log1yrisk + I(log(p_emph)) - 1,
@@ -1733,6 +1742,9 @@ summary(glm_screen_neg_logpemph)</code></pre>
 ## AIC: 877.91
 ## 
 ## Number of Fisher Scoring iterations: 6</code></pre>
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_logpemph, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre><code>## Area under the curve: 0.6477</code></pre>
 </div>
 <div id="with-physician-annotated-features" class="section level3">
 <h3>With physician-annotated features</h3>
@@ -1769,14 +1781,17 @@ summary(glm_screen_neg_cons)</code></pre>
 ## AIC: 744.4
 ## 
 ## Number of Fisher Scoring iterations: 6</code></pre>
-<pre class="r"><code>glm_screen_neg_abn_emph &lt;-
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_cons, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre><code>## Area under the curve: 0.6411</code></pre>
+<pre class="r"><code>glm_screen_neg_emph &lt;-
     glm(
         case ~ log1yrisk + log1yrisk:emphysema - 1,
         data = data_screen_abn_neg_emp,
         family = binomial(link = &#39;log&#39;),
         na.action = na.exclude
     )
-summary(glm_screen_neg_abn_emph)</code></pre>
+summary(glm_screen_neg_emph)</code></pre>
 <pre><code>## 
 ## Call:
 ## glm(formula = case ~ log1yrisk + log1yrisk:emphysema - 1, family = binomial(link = &quot;log&quot;), 
@@ -1801,14 +1816,17 @@ summary(glm_screen_neg_abn_emph)</code></pre>
 ## AIC: 738.85
 ## 
 ## Number of Fisher Scoring iterations: 6</code></pre>
-<pre class="r"><code>glm_screen_neg_abn_cons_emph &lt;-
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_emph, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre><code>## Area under the curve: 0.6555</code></pre>
+<pre class="r"><code>glm_screen_neg_cons_emph &lt;-
     glm(
         case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema - 1,
         data = data_screen_abn_neg_emp,
         family = binomial(link = &#39;log&#39;),
         na.action = na.exclude
     )
-summary(glm_screen_neg_abn_cons_emph)</code></pre>
+summary(glm_screen_neg_cons_emph)</code></pre>
 <pre><code>## 
 ## Call:
 ## glm(formula = case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema - 
@@ -1835,6 +1853,9 @@ summary(glm_screen_neg_abn_cons_emph)</code></pre>
 ## AIC: 739.27
 ## 
 ## Number of Fisher Scoring iterations: 7</code></pre>
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_cons_emph, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre><code>## Area under the curve: 0.6568</code></pre>
 <pre class="r"><code>glm_screen_neg_cons_emph_pemph &lt;-
     glm(
         case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema + I(log(p_emph)) - 1,
@@ -1870,6 +1891,9 @@ summary(glm_screen_neg_cons_emph_pemph)</code></pre>
 ## AIC: 735.13
 ## 
 ## Number of Fisher Scoring iterations: 7</code></pre>
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_cons_emph_pemph, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre><code>## Area under the curve: 0.6706</code></pre>
 </div>
 </div>
 
