@@ -1,0 +1,124 @@
+---
+title: Addition of Emphysema-CNN score improves upon prescreening risk calculated
+  by LCRAT
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load packages
+
+```{r load-packages, results='hide', message=FALSE}
+# List packages to be loaded (and installed if needed)
+packages <-
+    c(
+        "readr",
+        "here",
+        "dplyr",
+        "psych",
+        "pROC"
+    )
+
+# List packages that are not installed
+not_installed <-
+    packages[!(packages %in% installed.packages()[, "Package"])]
+
+# Install packages that are not installed
+if (length(not_installed))
+    install.packages(not_installed)
+
+# Load all packages
+lapply(packages, require, character.only = TRUE)
+
+```
+
+## Merge in Wes' T0 data
+
+```{r merge-data, results='hide', message=FALSE}
+nlst_emp <- read_csv(here('data/T0_data.csv'))
+data_screen_abn_neg <- readRDS(here('data/data_screen_abn_neg.rds'))
+data_screen_abn_neg_emp <-
+    merge(data_screen_abn_neg, nlst_emp, by = "pid")
+```
+
+## Fit models
+
+### Without physician-annotated features
+
+```{r score-only}
+# Prescreening risk only
+glm_screen_neg <-
+    glm(case ~ log1yrisk - 1,
+        data = data_screen_abn_neg_emp,
+        family = binomial(link = 'log'))
+summary(glm_screen_neg)
+
+# Prescreening risk + p_emph
+glm_screen_neg_pemph <-
+    glm(case ~ log1yrisk + p_emph - 1,
+        data = data_screen_abn_neg_emp,
+        family = binomial(link = 'log'),
+        na.action = na.exclude)
+summary(glm_screen_neg_pemph)
+
+# Prescreening risk + logit p_emph
+glm_screen_neg_logitpemph <-
+    glm(case ~ log1yrisk + I(logit(p_emph)) - 1,
+        data = data_screen_abn_neg_emp,
+        family = binomial(link = 'log'),
+        na.action = na.exclude)
+summary(glm_screen_neg_logitpemph)
+
+# Prescreening risk + log p_emph
+glm_screen_neg_logpemph <-
+    glm(case ~ log1yrisk + I(log(p_emph)) - 1,
+        data = data_screen_abn_neg_emp,
+        family = binomial(link = 'log'),
+        na.action = na.exclude)
+summary(glm_screen_neg_logpemph)
+```
+
+### With physician-annotated features
+
+```{r score-phys}
+glm_screen_neg_cons <-
+    glm(
+        case ~ log1yrisk + log1yrisk:consolidation - 1,
+        data = data_screen_abn_neg_emp,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summary(glm_screen_neg_cons)
+
+glm_screen_neg_abn_emph <-
+    glm(
+        case ~ log1yrisk + log1yrisk:emphysema - 1,
+        data = data_screen_abn_neg_emp,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summary(glm_screen_neg_abn_emph)
+
+glm_screen_neg_abn_cons_emph <-
+    glm(
+        case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema - 1,
+        data = data_screen_abn_neg_emp,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summary(glm_screen_neg_abn_cons_emph)
+
+glm_screen_neg_cons_emph_pemph <-
+    glm(
+        case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema + I(log(p_emph)) - 1,
+        data = data_screen_abn_neg_emp,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summary(glm_screen_neg_cons_emph_pemph)
+```

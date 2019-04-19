@@ -161,10 +161,10 @@ nlst_ct %>%
 # At risk in interval: T1 negatives only. Case status: false-negative at T1.
 nlst_ct %>%
     filter(truefalse_scrnres_ly1 %in% c(4, 5, 6)) %>%
-    mutate(case_T1_interval = ifelse(truefalse_scrnres_ly1 == 6, 1, 0)) %>%
+    mutate(case_T2_interval = ifelse(truefalse_scrnres_ly1 == 6, 1, 0)) %>%
     saveRDS(file = 'data/nlst_ct_t2_neg.rds')
 ### Create a dataset for risk during "interval" after T2 (within 1 year)
 nlst_ct %>%
     filter(truefalse_scrnres_ly2 %in% c(4, 5, 6)) %>%
-    mutate(case_T1_interval = ifelse(truefalse_scrnres_ly2 == 6, 1, 0)) %>%
+    mutate(case_T3_interval = ifelse(truefalse_scrnres_ly2 == 6, 1, 0)) %>%
     saveRDS(file = 'data/nlst_ct_t3_neg.rds')

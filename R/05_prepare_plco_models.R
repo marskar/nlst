@@ -37,13 +37,16 @@ devtools::install_github('marskar/lcmodels')
 '%!in%' <- function(x, y)
     ! ('%in%'(x, y))
 
+
 # Control arm of PLCO who had no chest xray
 plco_control <- readRDS('data/plco.rds') %>% 
     subset(control.group == 1) %>%
     # In the PLCO dataset, impute missing family history values to 0
     mutate(fam.lung.trend = ifelse(is.na(fam.lung.trend),
                                    0,
-                                   plco$fam.lung.trend))
+                                   fam.lung.trend))
+
+saveRDS(plco_control, file = here("data/plco_control.rds"))
 
 # To later calculate pre-screening risk, we must first fit the incidence model and other-cause death models in PLCO.
 coxph(

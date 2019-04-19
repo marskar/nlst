@@ -41,9 +41,9 @@ devtools::install_github('marskar/lcmodels')
 
 
 # Load NLST data
-nlst_sub = readRDS('data/nlst_sub.rds')
 nlst_ct_t1_scrisk = readRDS('data/nlst_ct_t1_scrisk.rds')
 nlst_ct_t2_scrisk = readRDS('data/nlst_ct_t2_scrisk.rds')
+nlst_sub = readRDS('data/nlst_sub.rds')
 
 # Construct dataset to model risk of ALL screen-detected cancers (at T1 and T2)
 # Interval variable in data.screen datasets is 1 for risk at T1 and 2 for risk at T2

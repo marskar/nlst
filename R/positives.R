@@ -3,35 +3,8 @@
 # List packages to be loaded (and installed if needed)
 library(here)
 
+data_screen_abn_pos <- readRDS(here('data/data_screen_abn_pos.rds'))
 
-# Load abnormalities data (person-screen level) and merge with data_screen
-# This dataset was created by 02_prepare_abn_data.R script
-abn <- readRDS(here("data/abn_lrads_merged.rds"))
-# This dataset was created by 03_prepare_data_screen.R script
-data_screen <- readRDS(here("data/data_screen.rds"))
-data_screen_abn <-
-    merge(
-        data_screen,
-        abn,
-        by = c("pid", "interval"),
-        all.x = TRUE,
-        all.y = FALSE
-    )
-
-# Replace NAs with 0 (not present) for appropriate variables
-replacevars  <-
-    names(abn)[!names(abn) %in% c("pid", "interval", "LRcat", "LRcatcol.neg", "LRcatcol.pos")]
-data.screen.abn[replacevars][is.na(data.screen.abn[replacevars])]  <- 0
-data.screen.abn <- mutate(data.screen.abn, longest.diam = ifelse(is.infinite(longest.diam), 0, longest.diam))
-# Make a variable for including observations in Lung-RADS analysis
-data.screen.abn$LR.include <- (data.screen.abn$LRcat %in% c("1","2","3","4A","4B","4X"))
-# Create variable for log(diameter)
-data.screen.abn$log.diam <- log(data.screen.abn$longest.diam+1)
-# Calculate pre-screening risk inside this dataset
-data.screen.abn$prescr.1yrisk <- risk.kovalchik(0, 1, data.screen.abn, LCRAT, cox.death)
-data.screen.abn <- mutate(data.screen.abn, log1yrisk=log(prescr.1yrisk), logit1yrisk=log(prescr.1yrisk/(1-prescr.1yrisk)))
-# This datasets is needed to separately model screen-detected cancers incorporating abnormalities for false-positives
-data.screen.abn.pos <- dplyr::filter(data.screen.abn, screen.result==1)
 # Make a categorical variable for diameter
 data.screen.abn.pos <- mutate(data.screen.abn.pos, diam.cat = 1*(longest.diam==0)+2*(longest.diam>0 & longest.diam<=5)+
                         3*(longest.diam>5 & longest.diam<=7) + 4*(longest.diam>7 & longest.diam<=10) +
@@ -48,6 +21,20 @@ data.screen.abn.pos$diam.cat.GG <- factor(data.screen.abn.pos$diam.cat.GG, level
 data.screen.abn.pos <- mutate(data.screen.abn.pos, growth.3l = 
                           1*(interval==1) + 2*(interval==2 & any.growth==0) + 3*(interval==2 & any.growth==1))
 data.screen.abn.pos$growth.3l <- factor(data.screen.abn.pos$growth.3l, levels = c(1,2,3), labels=c("NA","No","Yes"))
+
+# Run the main models
+# Fit an overall model with one exponent
+
+glm.screen.pos <- glm(case ~ log1yrisk -1, data=data.screen.abn.pos, family=binomial(link='log'))
+# Model with abnormalities
+glm.screen.pos.abn.log <- glm(case ~ log1yrisk:diam.cat + log1yrisk:any.growth + log1yrisk:any.upper + 
+                                log1yrisk:I(any.right.mid==1|any.lingula==1) + log1yrisk:any.mixed + 
+                                log1yrisk:any.spiculation + log1yrisk:I(any.poor.def==1|any.margin.unab==1) -1, 
+                                data=data.screen.abn.pos, family=binomial(link='log'))
+data.screen.abn.pos$post.risk.abn.pos <- fitted.values(glm.screen.pos.abn.log)
+
+
+
 # Will need this vector for exploratory analysis of abnormalities (24 Jan 2017 - also create interaction vectors)
 abnlist <- abnlist.pos <- c(names(abn)[5:32], "diam.cat") # omits longest.diam and any.nodule, but includes diam.cat which subsumes both. 12 Oct 2018 now includes any.new.nodule
 abnlist.pos.int <- lapply(abnlist.pos, function(x) {substitute(logit1yrisk:i, list(i=as.name(x)))})
@@ -64,17 +51,6 @@ all.subj.pos <- mutate(all.subj.pos, age.cat=as.factor(ifelse(age>=55 & age<60, 
                           ifelse(cpd>=30 & cpd<40, "30-39", ifelse(cpd>=40 & cpd<99, "40+", NA))))),
                        smkyears.cat=as.factor(ifelse(smkyears>0 & smkyears<30, "<30", ifelse(smkyears>=30 & smkyears<40, "30-39",
                           ifelse(smkyears>=40 & smkyears<50, "40-49", ifelse(smkyears>=50 & smkyears<99, "50+", NA))))))
-
-# Run the main models
-# Fit an overall model with one exponent
-
-glm.screen.pos <- glm(case ~ log1yrisk -1, data=data.screen.abn.pos, family=binomial(link='log'))
-# Model with abnormalities
-glm.screen.pos.abn.log <- glm(case ~ log1yrisk:diam.cat + log1yrisk:any.growth + log1yrisk:any.upper + 
-                                log1yrisk:I(any.right.mid==1|any.lingula==1) + log1yrisk:any.mixed + 
-                                log1yrisk:any.spiculation + log1yrisk:I(any.poor.def==1|any.margin.unab==1) -1, 
-                                data=data.screen.abn.pos, family=binomial(link='log'))
-data.screen.abn.pos$post.risk.abn.pos <- fitted.values(glm.screen.pos.abn.log)
 
 
 # --------------------------- run code to this line for data setup ----------------------------- #
