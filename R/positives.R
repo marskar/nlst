@@ -31,6 +31,10 @@ if (length(not_installed))
 # Load all packages
 lapply(packages, require, character.only = TRUE)
 
+# Function to create "not in" operator
+'%!in%' <- function(x, y) {
+    !('%in%'(x, y))
+}
 
 data_screen_abn_pos <-
     readRDS(here('data/data_screen_abn_pos.rds')) %>%
@@ -331,29 +335,44 @@ lrtest(mod_vars_bsw_nodiamcat, mod_vars_bsw)
 # Lasso with intermediate lambda - selects any.upper, any.spiculation, any.smooth, any.mixed, any.other.att, any.growth, 4 of 6 diam.cat categories 
 # why isn't this omitting the intercept? 
 set.seed(61116)
+
 x = model.matrix(case ~ logit1yrisk + logit1yrisk:. - 1, data = data_screen_abn_pos[, c("case", "logit1yrisk", abnlist.pos)])
+
+which(data_screen_abn_pos$logit1yrisk %!in% x[,'logit1yrisk'])
 cv.lasso = cv.glmnet(x,
-                     data_screen_abn_pos$case,
+                     data_screen_abn_pos[-6256, ]$case,
                      alpha = 1,
                      family = "binomial")
 out <-
     glmnet(x,
-           data_screen_abn_pos$case,
+           data_screen_abn_pos[-6256, ]$case,
            alpha = 1,
            family = "binomial")
 predict(out,
         type = "coefficients",
         s = (cv.lasso$lambda.min + cv.lasso$lambda.1se) / 2)
     # Fit this model - log scale
-mod.vars.lasso <- glm(case ~ log1yrisk:any.upper + log1yrisk:any.spiculation + log1yrisk:any.smooth + log1yrisk:any.mixed +
-                        log1yrisk:any.other.att + log1yrisk:any.growth + log1yrisk:diam.cat -1, data=data_screen_abn_pos, family=binomial(link='log'))
-summary(mod.vars.lasso)
+mod_vars_lasso <-
+    glm(
+        case ~ log1yrisk:any.upper + log1yrisk:any.spiculation + log1yrisk:any.smooth + log1yrisk:any.mixed +
+            log1yrisk:any.other.att + log1yrisk:any.growth + log1yrisk:diam_cat -
+            1,
+        data = data_screen_abn_pos,
+        family = binomial(link = 'log')
+    )
+summary(mod_vars_lasso)
     # get contrast amounts for diameter variable (for lasso model in table)
-lapply(coefficients(mod.vars.lasso)[7:12], function(x) x-coefficients(mod.vars.lasso)[8])
+lapply(coefficients(mod_vars_lasso)[7:12], function(x) x-coefficients(mod_vars_lasso)[8])
     # Get LRT p-value for diam.cat: p<0.00001
-mod.vars.lasso.nodiamcat <- glm(case ~ log1yrisk + log1yrisk:any.upper + log1yrisk:any.spiculation + log1yrisk:any.smooth + log1yrisk:any.mixed +
-                        log1yrisk:any.other.att + log1yrisk:any.growth -1, data=data_screen_abn_pos, family=binomial(link='log'))
-lrtest(mod.vars.lasso.nodiamcat, mod.vars.lasso)
+mod_vars_lasso_nodiamcat <-
+    glm(
+        case ~ log1yrisk + log1yrisk:any.upper + log1yrisk:any.spiculation + log1yrisk:any.smooth + log1yrisk:any.mixed +
+            log1yrisk:any.other.att + log1yrisk:any.growth -
+            1,
+        data = data_screen_abn_pos,
+        family = binomial(link = 'log')
+    )
+lrtest(mod_vars_lasso_nodiamcat, mod_vars_lasso)
 # Try fitting a final model:
   # 1) combine right-mid + lingula location as one effect. 2) combine poor-def and cannot-determine margins as one effect.
   # 3) fit a model with all variables selected by either approach. 4) remove any.smooth (soft tissue attenuation) where beta=0.01 and p=0.73
@@ -363,35 +382,48 @@ lrtest(mod.vars.lasso.nodiamcat, mod.vars.lasso)
   # 8) try adding any.new.nodule to confirm it doesn't contribute
   # 9) try adding an effect for new nodules 4-7mm in diameter to allow the effect of diameter to vary. doesn't contribute
   # 10) add an effect for black race to see how much it adds and whether it changes other parameters
-glm.screen.pos.abn.dev <- glm(case ~ log1yrisk:diam.cat + log1yrisk:any.growth +     # replace diam.cat with diam.cat.GG to test AIC
-                      log1yrisk:any.upper + log1yrisk:I(any.right.mid==1|any.lingula==1) +
-                      log1yrisk:any.mixed + 
-                     # log1yrisk:any.other.att +        # REMOVE - too difficult to interpret
-                     # log1yrisk:any.smooth +       # REMOVE - beta=0.01, p=0.73
-                     # log1yrisk:nodule.count +     # to confirm it does not contribute: p=0.29
-                     # log1yrisk:any.new.nodule +   # to confirm it does not contribute: p=0.77
-                     # log1yrisk:any.new.nodule.4.7.mm +   # to confirm it does not contribute: p=0.86
-                     # log1yrisk:I(race==1) +  # p=0.006, change in exponent -0.13. other coefficients don't change.
-                       log1yrisk:any.spiculation + log1yrisk:I(any.poor.def==1|any.margin.unab==1) -1, 
-                      data=data_screen_abn_pos, family=binomial(link='log'))
-summary(glm.screen.pos.abn.dev)
+glm_screen_pos_abn_dev <-
+    glm(
+        case ~ log1yrisk:diam_cat + log1yrisk:any.growth +     # replace diam.cat with diam.cat.GG to test AIC
+            log1yrisk:any.upper + log1yrisk:I(any.right.mid ==
+                                                  1 | any.lingula == 1) +
+            log1yrisk:any.mixed +
+            # log1yrisk:any.other.att +        # REMOVE - too difficult to interpret
+            # log1yrisk:any.smooth +       # REMOVE - beta=0.01, p=0.73
+            # log1yrisk:nodule.count +     # to confirm it does not contribute: p=0.29
+            # log1yrisk:any.new.nodule +   # to confirm it does not contribute: p=0.77
+            # log1yrisk:any.new.nodule.4.7.mm +   # to confirm it does not contribute: p=0.86
+            # log1yrisk:I(race==1) +  # p=0.006, change in exponent -0.13. other coefficients don't change.
+            log1yrisk:any.spiculation + log1yrisk:I(any.poor.def ==
+                                                        1 | any.margin.unab == 1) - 1,
+        data = data_screen_abn_pos,
+        family = binomial(link = 'log')
+    )
+summary(glm_screen_pos_abn_dev)
 # Get LRT p-value for diam.cat
-glm.screen.pos.abn.dev.nodiamcat <- glm(case ~ log1yrisk + log1yrisk:any.growth +
-                                log1yrisk:any.upper + log1yrisk:I(any.right.mid==1|any.lingula==1) +
-                                log1yrisk:I(any.new.nodule==T & diam.cat %in% c("4-5","6-7")) +
-                                log1yrisk:any.mixed + log1yrisk:any.spiculation + log1yrisk:I(any.poor.def==1|any.margin.unab==1) -1, 
-                              data=data_screen_abn_pos, family=binomial(link='log'))
-lrtest(glm.screen.pos.abn.dev.nodiamcat, glm.screen.pos.abn.dev)
+glm_screen_pos_abn_dev_nodiamcat <-
+    glm(
+        case ~ log1yrisk + log1yrisk:any.growth +
+            log1yrisk:any.upper + log1yrisk:I(any.right.mid ==
+                                                  1 | any.lingula == 1) +
+            log1yrisk:I(any.new.nodule == T &
+                            diam_cat %in% c("4-5", "6-7")) +
+            log1yrisk:any.mixed + log1yrisk:any.spiculation + log1yrisk:I(any.poor.def ==
+                                                                              1 | any.margin.unab == 1) - 1,
+        data = data_screen_abn_pos,
+        family = binomial(link = 'log')
+    )
+lrtest(glm_screen_pos_abn_dev_nodiamcat, glm_screen_pos_abn_dev)
 # Compare this model to one that ignores pre-screening risk
-glm.screen.pos.abn.nopsr <-  glm(case ~ diam.cat + any.growth + any.upper + 
+glm_screen_pos_abn_nopsr <-  glm(case ~ diam_cat + any.growth + any.upper + 
                       I(any.right.mid==1|any.lingula==1) + any.mixed + any.spiculation + 
-                      I(any.new.nodule==T & diam.cat %in% c("4-5","6-7")) +
+                      I(any.new.nodule==T & diam_cat %in% c("4-5","6-7")) +
                       I(any.poor.def==1|any.margin.unab==1) -1, data=data_screen_abn_pos, family=binomial(link='log'))
-summary(glm.screen.pos.abn.nopsr)
+summary(glm_screen_pos_abn_nopsr)
 # Check for residual effects of LCRAT variables.
 titles <- c("var","null model # param", "extended model # param", "LRT p-value", "check same # obs")
-mat.out.ns <- matrix(rep(NA),nrow=length(varlist),ncol=length(titles))
-mod.without <- glm(case ~ log1yrisk:diam.cat + log1yrisk:any.growth + log1yrisk:any.upper + log1yrisk:I(any.right.mid==1|any.lingula==1) + log1yrisk:any.mixed + log1yrisk:any.spiculation + log1yrisk:I(any.poor.def==1|any.margin.unab==1) + log1yrisk:I(any.new.nodule==T & diam.cat %in% c("4-5","6-7")) -1, data=data_screen_abn_pos, family=binomial(link='log'))
+mat_out_ns <- matrix(rep(NA),nrow=length(varlist),ncol=length(titles))
+mod_without <- glm(case ~ log1yrisk:diam_cat + log1yrisk:any.growth + log1yrisk:any.upper + log1yrisk:I(any.right.mid==1|any.lingula==1) + log1yrisk:any.mixed + log1yrisk:any.spiculation + log1yrisk:I(any.poor.def==1|any.margin.unab==1) + log1yrisk:I(any.new.nodule==T & diam_cat %in% c("4-5","6-7")) -1, data=data_screen_abn_pos, family=binomial(link='log'))
 for (x in seq_along(varlist)) {
   mod.with <- glm(substitute(case ~ log1yrisk:diam.cat + log1yrisk:any.growth + log1yrisk:any.upper + log1yrisk:I(any.right.mid==1|any.lingula==1) + log1yrisk:any.mixed + log1yrisk:any.spiculation + log1yrisk:I(any.poor.def==1|any.margin.unab==1) + log1yrisk:i -1, list(i=as.name(varlist[x]))), data=data_screen_abn_pos, family=binomial(link='log'))
   print(summary(mod.with))
