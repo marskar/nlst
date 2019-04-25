@@ -1,14 +1,10 @@
 figs
 manuscripts
-*.rdata
-*.rds
 *.Rproj
 *.zip
 *.tar.gz
 *.docx
 *.zip
-*.csv
-*.sas7bdat
 __MACOSX
 .Rhistory
 ~$*
