@@ -116,4 +116,4 @@ abn_lrads_merged <- abn %>% group_by(pid, STUDY_YR) %>%
             LRcat %in% c("3 or 4A", "3,4A, or 4B", "4A or 4B") ~ 7
         )
     ) %>%
-    saveRDS(file = "data/abnorm_lrads_merged.rds")
+    saveRDS(file = "data/abn_lrads_merged.rds")
