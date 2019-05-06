@@ -4,6 +4,8 @@ title: Addition of Emphysema-CNN score improves upon prescreening risk calculate
 output:
   word_document:
     reference_docx: style.docx
+bibliography: bibliography.bib
+csl: radiology.csl
 ---
 
 Introduction {#introduction .unnumbered}
@@ -46,7 +48,7 @@ most of this is required during training and not during deployment.
 Lung Cancer Risk Prediction {#lung-cancer-risk-prediction .unnumbered}
 ---------------------------
 
-\[\[Cite Hilary’s Markov paper and give a basic explanation here\]\]
+Cite Hilary’s Markov paper and give a basic explanation here
 
 Methods {#methods .unnumbered}
 =======
@@ -60,7 +62,7 @@ screening for lung CT abnormalities.
 The scans were first converted to NifTI-1 format, then cropped to a
 bounding box around the lung using the Progressive Holistically-Nested
 Network (P-HNN) lung segmenter[@phnn17], normalized in three different
-lung windows of \[-1000, 200\], \[-160, 240\], and \[-1000, -775\], and
+lung windows of -1000, 200, -160, 240, and -1000, -775, and
 rescaled to a standard size of 128x128x128. These lung windows were
 chosen due to their use in the P-HNN segmenter[@phnn17]. The resulting
 3-channel image was then fed into a standard 3D convolutional neural
