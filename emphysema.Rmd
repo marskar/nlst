@@ -32,8 +32,7 @@ patient is considered emphysematous. This technique has shown to be very
 effective when used consistenly on the same scanner where the threshold
 can be tailored to that scanner and reconstruction kernel; however,
 Density Mask suffers greatly when the CT scans are taken from a more
-diverse data set as in the case of the NLST[@Gierada10]. The CT scans
-from the NLST come from 33 sites across the US and 23 different scanner
+diverse data set as in the case of the NLST (National Lung Screening Trial)[@Gierada10]. The CT scans from the NLST come from 33 sites across the US and 23 different scanner
 models reconstructed using 44 different reconstruction kernels[@nlst11].
 Therefore, it is paramount to develop quantitative methods that are much
 more robust in the face of ever-growing datasets.
@@ -140,3 +139,25 @@ shows that there is value in working directly with CT data instead of
 just in derived values. Furthermore, the neural network approach is
 significantly more robust than the density mask approach, even with a
 very basic network.
+
+Tables {#tables .unnumbered}
+======
+
+Table 1: Demographics of CT scan recipients (familiar for epidemiologists)
+Table 2: Markov model summary (familiar for epidemiologists)
+
+Figures
+=======
+
+Figure 1A: Representative images of physician-annotated emphysematous and non-emphysematous CT scans (familiar for radiologists)
+Figure 1B: Representative images of model-predicted emphysematous and non-emphysematous CT scans (familiar for radiologists)
+
+Figure 2A: Network architecture: `keras.utils.plot_model()` (helpful for those not familiar with deep learning)
+Figure 2B: Network architecture: `training_graph.py` (helpful for those not familiar with deep learning)
+
+Figure 3A: Confusion matrix - 2 x 2 table of actual versus predicted labels to show performance of model for predicting emphysema
+Figure 3B: Receiver operating characteristic (ROC) curve to show performance of model for predicting emphysema
+Figure 3C: Confusion matrix - 2 x 2 table of actual versus predicted labels to show performance of Markov model
+Figure 3D: Receiver operating characteristic (ROC) curve to show performance of Markov model
+
+Figure 4: Comparison of binary classifier network versus image features network

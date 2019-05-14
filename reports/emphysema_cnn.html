@@ -1598,7 +1598,7 @@ not_installed &lt;-
     packages[!(packages %in% installed.packages()[, &quot;Package&quot;])]
 
 # Install packages that are not installed
-if (length(not_installed))
+  if (length(not_installed))
     install.packages(not_installed)
 
 # Load all packages
@@ -1606,25 +1606,31 @@ lapply(packages, require, character.only = TRUE)</code></pre>
 </div>
 <div id="merge-in-wes-t0-data" class="section level2">
 <h2>Merge in Wes’ T0 data</h2>
-<pre class="r"><code>nlst_emp &lt;- read_csv(here(&#39;data/T0_data.csv&#39;))
+<pre class="r"><code>t0_nlst_emp &lt;- read_csv(here(&#39;data/T0_data.csv&#39;))
+t1_nlst_emp &lt;- read_csv(here(&#39;data/T1_data.csv&#39;))
+t2_nlst_emp &lt;- read_csv(here(&#39;data/T2_data.csv&#39;))
 data_screen_abn_neg &lt;- readRDS(here(&#39;data/data_screen_abn_neg.rds&#39;))
-data_screen_abn_neg_emp &lt;-
-    merge(data_screen_abn_neg, nlst_emp, by = &quot;pid&quot;)</code></pre>
+data_screen_abn_neg_emp_t0 &lt;-
+    merge(data_screen_abn_neg, t0_nlst_emp, by = &quot;pid&quot;)
+data_screen_abn_neg_emp_t1 &lt;-
+    merge(data_screen_abn_neg, t1_nlst_emp, by = &quot;pid&quot;)
+data_screen_abn_neg_emp_t2 &lt;-
+    merge(data_screen_abn_neg, t2_nlst_emp, by = &quot;pid&quot;)</code></pre>
 </div>
 <div id="fit-models" class="section level2">
 <h2>Fit models</h2>
-<div id="without-physician-annotated-features" class="section level3">
-<h3>Without physician-annotated features</h3>
+<div id="t0-without-physician-annotated-features" class="section level3">
+<h3>T0: Without physician-annotated features</h3>
 <pre class="r"><code># Prescreening risk only
-glm_screen_neg &lt;-
+glm_screen_neg_t0 &lt;-
     glm(case ~ log1yrisk - 1,
-        data = data_screen_abn_neg_emp,
+        data = data_screen_abn_neg_emp_t0,
         family = binomial(link = &#39;log&#39;))
-summary(glm_screen_neg)</code></pre>
+summary(glm_screen_neg_t0)</code></pre>
 <pre><code>## 
 ## Call:
 ## glm(formula = case ~ log1yrisk - 1, family = binomial(link = &quot;log&quot;), 
-##     data = data_screen_abn_neg_emp)
+##     data = data_screen_abn_neg_emp_t0)
 ## 
 ## Deviance Residuals: 
 ##     Min       1Q   Median       3Q      Max  
@@ -1643,20 +1649,20 @@ summary(glm_screen_neg)</code></pre>
 ## AIC: 881.18
 ## 
 ## Number of Fisher Scoring iterations: 6</code></pre>
-<pre class="r"><code>predictions &lt;- predict(glm_screen_neg, type = &quot;response&quot;)
-pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_t0, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)</code></pre>
 <pre><code>## Area under the curve: 0.6287</code></pre>
 <pre class="r"><code># Prescreening risk + p_emph
-glm_screen_neg_pemph &lt;-
+glm_screen_neg_pemph_t0 &lt;-
     glm(case ~ log1yrisk + p_emph - 1,
-        data = data_screen_abn_neg_emp,
+        data = data_screen_abn_neg_emp_t0,
         family = binomial(link = &#39;log&#39;),
         na.action = na.exclude)
-summary(glm_screen_neg_pemph)</code></pre>
+summary(glm_screen_neg_pemph_t0)</code></pre>
 <pre><code>## 
 ## Call:
 ## glm(formula = case ~ log1yrisk + p_emph - 1, family = binomial(link = &quot;log&quot;), 
-##     data = data_screen_abn_neg_emp, na.action = na.exclude)
+##     data = data_screen_abn_neg_emp_t0, na.action = na.exclude)
 ## 
 ## Deviance Residuals: 
 ##     Min       1Q   Median       3Q      Max  
@@ -1676,20 +1682,20 @@ summary(glm_screen_neg_pemph)</code></pre>
 ## AIC: 879.93
 ## 
 ## Number of Fisher Scoring iterations: 6</code></pre>
-<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_pemph, type = &quot;response&quot;)
-pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_pemph_t0, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)</code></pre>
 <pre><code>## Area under the curve: 0.6406</code></pre>
 <pre class="r"><code># Prescreening risk + logit p_emph
-glm_screen_neg_logitpemph &lt;-
+glm_screen_neg_logitpemph_t0 &lt;-
     glm(case ~ log1yrisk + I(logit(p_emph)) - 1,
-        data = data_screen_abn_neg_emp,
+        data = data_screen_abn_neg_emp_t0,
         family = binomial(link = &#39;log&#39;),
         na.action = na.exclude)
-summary(glm_screen_neg_logitpemph)</code></pre>
+summary(glm_screen_neg_logitpemph_t0)</code></pre>
 <pre><code>## 
 ## Call:
 ## glm(formula = case ~ log1yrisk + I(logit(p_emph)) - 1, family = binomial(link = &quot;log&quot;), 
-##     data = data_screen_abn_neg_emp, na.action = na.exclude)
+##     data = data_screen_abn_neg_emp_t0, na.action = na.exclude)
 ## 
 ## Deviance Residuals: 
 ##     Min       1Q   Median       3Q      Max  
@@ -1709,20 +1715,20 @@ summary(glm_screen_neg_logitpemph)</code></pre>
 ## AIC: 878.93
 ## 
 ## Number of Fisher Scoring iterations: 6</code></pre>
-<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_logitpemph, type = &quot;response&quot;)
-pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_logitpemph_t0, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)</code></pre>
 <pre><code>## Area under the curve: 0.6463</code></pre>
 <pre class="r"><code># Prescreening risk + log p_emph
-glm_screen_neg_logpemph &lt;-
+glm_screen_neg_logpemph_t0 &lt;-
     glm(case ~ log1yrisk + I(log(p_emph)) - 1,
-        data = data_screen_abn_neg_emp,
+        data = data_screen_abn_neg_emp_t0,
         family = binomial(link = &#39;log&#39;),
         na.action = na.exclude)
-summary(glm_screen_neg_logpemph)</code></pre>
+summary(glm_screen_neg_logpemph_t0)</code></pre>
 <pre><code>## 
 ## Call:
 ## glm(formula = case ~ log1yrisk + I(log(p_emph)) - 1, family = binomial(link = &quot;log&quot;), 
-##     data = data_screen_abn_neg_emp, na.action = na.exclude)
+##     data = data_screen_abn_neg_emp_t0, na.action = na.exclude)
 ## 
 ## Deviance Residuals: 
 ##     Min       1Q   Median       3Q      Max  
@@ -1742,24 +1748,24 @@ summary(glm_screen_neg_logpemph)</code></pre>
 ## AIC: 877.91
 ## 
 ## Number of Fisher Scoring iterations: 6</code></pre>
-<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_logpemph, type = &quot;response&quot;)
-pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_logpemph_t0, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)</code></pre>
 <pre><code>## Area under the curve: 0.6477</code></pre>
 </div>
-<div id="with-physician-annotated-features" class="section level3">
-<h3>With physician-annotated features</h3>
-<pre class="r"><code>glm_screen_neg_cons &lt;-
+<div id="t0-with-physician-annotated-features" class="section level3">
+<h3>T0: With physician-annotated features</h3>
+<pre class="r"><code>glm_screen_neg_cons_t0 &lt;-
     glm(
         case ~ log1yrisk + log1yrisk:consolidation - 1,
-        data = data_screen_abn_neg_emp,
+        data = data_screen_abn_neg_emp_t0,
         family = binomial(link = &#39;log&#39;),
         na.action = na.exclude
     )
-summary(glm_screen_neg_cons)</code></pre>
+summary(glm_screen_neg_cons_t0)</code></pre>
 <pre><code>## 
 ## Call:
 ## glm(formula = case ~ log1yrisk + log1yrisk:consolidation - 1, 
-##     family = binomial(link = &quot;log&quot;), data = data_screen_abn_neg_emp, 
+##     family = binomial(link = &quot;log&quot;), data = data_screen_abn_neg_emp_t0, 
 ##     na.action = na.exclude)
 ## 
 ## Deviance Residuals: 
@@ -1781,21 +1787,21 @@ summary(glm_screen_neg_cons)</code></pre>
 ## AIC: 744.4
 ## 
 ## Number of Fisher Scoring iterations: 6</code></pre>
-<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_cons, type = &quot;response&quot;)
-pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_cons_t0, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)</code></pre>
 <pre><code>## Area under the curve: 0.6411</code></pre>
-<pre class="r"><code>glm_screen_neg_emph &lt;-
+<pre class="r"><code>glm_screen_neg_emph_t0 &lt;-
     glm(
         case ~ log1yrisk + log1yrisk:emphysema - 1,
-        data = data_screen_abn_neg_emp,
+        data = data_screen_abn_neg_emp_t0,
         family = binomial(link = &#39;log&#39;),
         na.action = na.exclude
     )
-summary(glm_screen_neg_emph)</code></pre>
+summary(glm_screen_neg_emph_t0)</code></pre>
 <pre><code>## 
 ## Call:
 ## glm(formula = case ~ log1yrisk + log1yrisk:emphysema - 1, family = binomial(link = &quot;log&quot;), 
-##     data = data_screen_abn_neg_emp, na.action = na.exclude)
+##     data = data_screen_abn_neg_emp_t0, na.action = na.exclude)
 ## 
 ## Deviance Residuals: 
 ##     Min       1Q   Median       3Q      Max  
@@ -1816,21 +1822,21 @@ summary(glm_screen_neg_emph)</code></pre>
 ## AIC: 738.85
 ## 
 ## Number of Fisher Scoring iterations: 6</code></pre>
-<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_emph, type = &quot;response&quot;)
-pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_emph_t0, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)</code></pre>
 <pre><code>## Area under the curve: 0.6555</code></pre>
-<pre class="r"><code>glm_screen_neg_cons_emph &lt;-
+<pre class="r"><code>glm_screen_neg_cons_emph_t0 &lt;-
     glm(
         case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema - 1,
-        data = data_screen_abn_neg_emp,
+        data = data_screen_abn_neg_emp_t0,
         family = binomial(link = &#39;log&#39;),
         na.action = na.exclude
     )
-summary(glm_screen_neg_cons_emph)</code></pre>
+summary(glm_screen_neg_cons_emph_t0)</code></pre>
 <pre><code>## 
 ## Call:
 ## glm(formula = case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema - 
-##     1, family = binomial(link = &quot;log&quot;), data = data_screen_abn_neg_emp, 
+##     1, family = binomial(link = &quot;log&quot;), data = data_screen_abn_neg_emp_t0, 
 ##     na.action = na.exclude)
 ## 
 ## Deviance Residuals: 
@@ -1853,21 +1859,21 @@ summary(glm_screen_neg_cons_emph)</code></pre>
 ## AIC: 739.27
 ## 
 ## Number of Fisher Scoring iterations: 7</code></pre>
-<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_cons_emph, type = &quot;response&quot;)
-pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_cons_emph_t0, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)</code></pre>
 <pre><code>## Area under the curve: 0.6568</code></pre>
-<pre class="r"><code>glm_screen_neg_cons_emph_pemph &lt;-
+<pre class="r"><code>glm_screen_neg_cons_emph_pemph_t0 &lt;-
     glm(
         case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema + I(log(p_emph)) - 1,
-        data = data_screen_abn_neg_emp,
+        data = data_screen_abn_neg_emp_t0,
         family = binomial(link = &#39;log&#39;),
         na.action = na.exclude
     )
-summary(glm_screen_neg_cons_emph_pemph)</code></pre>
+summary(glm_screen_neg_cons_emph_pemph_t0)</code></pre>
 <pre><code>## 
 ## Call:
 ## glm(formula = case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema + 
-##     I(log(p_emph)) - 1, family = binomial(link = &quot;log&quot;), data = data_screen_abn_neg_emp, 
+##     I(log(p_emph)) - 1, family = binomial(link = &quot;log&quot;), data = data_screen_abn_neg_emp_t0, 
 ##     na.action = na.exclude)
 ## 
 ## Deviance Residuals: 
@@ -1891,9 +1897,18 @@ summary(glm_screen_neg_cons_emph_pemph)</code></pre>
 ## AIC: 735.13
 ## 
 ## Number of Fisher Scoring iterations: 7</code></pre>
-<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_cons_emph_pemph, type = &quot;response&quot;)
-pROC::auc(data_screen_abn_neg_emp$case, predictions)</code></pre>
+<pre class="r"><code>predictions &lt;- predict(glm_screen_neg_cons_emph_pemph_t0, type = &quot;response&quot;)
+pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)</code></pre>
 <pre><code>## Area under the curve: 0.6706</code></pre>
+</div>
+<div id="final-summary" class="section level3">
+<h3>Final summary</h3>
+<pre class="r"><code>anova(glm_screen_neg_cons_t0, glm_screen_neg_cons_emph_t0, glm_screen_neg_cons_emph_pemph_t0)</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Resid. Df"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["Resid. Dev"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["Df"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["Deviance"],"name":[4],"type":["dbl"],"align":["right"]}],"data":[{"1":"1534","2":"740.4000","3":"NA","4":"NA","_rn_":"1"},{"1":"1533","2":"733.2705","3":"1","4":"7.129518","_rn_":"2"},{"1":"1532","2":"727.1266","3":"1","4":"6.143905","_rn_":"3"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
 </div>
 </div>
 
