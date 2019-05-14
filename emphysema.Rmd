@@ -162,7 +162,7 @@ Figure 3A: Confusion matrix - 2 x 2 table of actual versus predicted labels to s
 Figure 3B: Receiver operating characteristic (ROC) curve to show performance of model for predicting emphysema
 
 
-Figure 4: Markov model performance for predicting emphysema
+Figure 4: Markov model performance for predicting cancer risk
 Figure 4A: Confusion matrix - 2 x 2 table of actual versus predicted labels to show performance of Markov model
 Figure 4B: Receiver operating characteristic (ROC) curve to show performance of Markov model
 
