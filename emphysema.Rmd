@@ -149,15 +149,23 @@ Table 2: Markov model summary (familiar for epidemiologists)
 Figures
 =======
 
+Figure 1: Representative images of CT scans
 Figure 1A: Representative images of physician-annotated emphysematous and non-emphysematous CT scans (familiar for radiologists)
 Figure 1B: Representative images of model-predicted emphysematous and non-emphysematous CT scans (familiar for radiologists)
 
+Figure 1: Network architecture and learning curves
 Figure 2A: Network architecture: `keras.utils.plot_model()` (helpful for those not familiar with deep learning)
-Figure 2B: Network architecture: `training_graph.py` (helpful for those not familiar with deep learning)
+Figure 2B: Learning curves: `training_graph.py` (helpful for those not familiar with deep learning)
 
+Figure 3: Neural network performance for predicting emphysema
 Figure 3A: Confusion matrix - 2 x 2 table of actual versus predicted labels to show performance of model for predicting emphysema
 Figure 3B: Receiver operating characteristic (ROC) curve to show performance of model for predicting emphysema
-Figure 3C: Confusion matrix - 2 x 2 table of actual versus predicted labels to show performance of Markov model
-Figure 3D: Receiver operating characteristic (ROC) curve to show performance of Markov model
 
-Figure 4: Comparison of binary classifier network versus image features network
+
+Figure 4: Markov model performance for predicting emphysema
+Figure 4A: Confusion matrix - 2 x 2 table of actual versus predicted labels to show performance of Markov model
+Figure 4B: Receiver operating characteristic (ROC) curve to show performance of Markov model
+
+Figure 5: Comparison of binary classifier network versus image features network
+Figure 5A: Confusion matrix - 2 x 2 table of actual versus predicted labels to show performance of Markov model
+Figure 5B: Receiver operating characteristic (ROC) curve to show performance of Markov model
