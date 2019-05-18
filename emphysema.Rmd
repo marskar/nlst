@@ -29,13 +29,20 @@ of emphysema is the Density Mask technique[@msma88]. Density Mask
 measures the percentage of voxels in the lung below a certain density
 threshold, and if this percentage is above a preset threshold then the
 patient is considered emphysematous. This technique has shown to be very
-effective when used consistenly on the same scanner where the threshold
+effective when used consistently on the same scanner where the threshold
 can be tailored to that scanner and reconstruction kernel; however,
 Density Mask suffers greatly when the CT scans are taken from a more
 diverse data set as in the case of the NLST (National Lung Screening Trial)[@Gierada10]. The CT scans from the NLST come from 33 sites across the US and 23 different scanner
 models reconstructed using 44 different reconstruction kernels[@nlst11].
 Therefore, it is paramount to develop quantitative methods that are much
 more robust in the face of ever-growing datasets.
+
+How well does Density Mask work?
+Compare to our neural net.
+
+Parameters:
+- KPB (kilovolts ...)
+- MAS (milliamperes)
 
 In order to quantitatively analyze emphysema in a more robust manner, we
 use as our model a three dimensional convolutional neural network (3D
@@ -143,7 +150,11 @@ very basic network.
 Tables {#tables .unnumbered}
 ======
 
-Table 1: Demographics of CT scan recipients (familiar for epidemiologists)
+Table 1: Demographics of random sample of CT scan recipients (familiar for epidemiologists)
+- training
+- validation
+- testing
+
 Table 2: Markov model summary (familiar for epidemiologists)
 
 Figures
@@ -169,3 +180,12 @@ Figure 4B: Receiver operating characteristic (ROC) curve to show performance of 
 Figure 5: Comparison of binary classifier network versus image features network
 Figure 5A: Confusion matrix - 2 x 2 table of actual versus predicted labels to show performance of Markov model
 Figure 5B: Receiver operating characteristic (ROC) curve to show performance of Markov model
+
+Notes
+=====
+
+JTO instead of Radiology?
+
+Look at AI journals for radiology
+
+
