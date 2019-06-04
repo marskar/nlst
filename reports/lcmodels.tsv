@@ -1,0 +1,26 @@
+Covariate                         	 Bach 	 Spitz 	 LLP 	 Hoggart 	 PLCOm2012 	 Pittsburgh 	 LLPi 	 LCRAT 	 LCDRAT
+Age                               	 1    	 1     	 1   	 1       	 1         	 1          	 1    	 1     	 1
+Gender                            	 1    	 1     	 1   	 0       	 0         	 0          	 1    	 1     	 1
+Race/ethnicity                    	 0    	 0     	 0   	 0       	 1         	 0          	 0    	 1     	 1
+Asian                             	 0    	 0     	 0   	 0       	 1         	 0          	 0    	 0     	 0
+Pacific islander                  	 0    	 0     	 0   	 0       	 1         	 0          	 0    	 0     	 0
+America Indian                    	 0    	 0     	 0   	 0       	 1         	 0          	 0    	 0     	 0
+Education                         	 0    	 0     	 0   	 0       	 1         	 0          	 0    	 1     	 1
+BMI                               	 0    	 0     	 0   	 0       	 1         	 0          	 0    	 1     	 1
+Smoking status                    	 0    	 1     	 0   	 1       	 1         	 1          	 0    	 0     	 0
+Years/Age quit                    	 1    	 1     	 0   	 1       	 1         	 0          	 0    	 1     	 1
+Years smoked                      	 1    	 0     	 1   	 1       	 1         	 1          	 1    	 1     	 1
+Cigs per day                      	 1    	 0     	 0   	 1       	 1         	 1          	 0    	 1     	 1
+Pack-years                        	 0    	 1     	 0   	 0       	 0         	 0          	 0    	 1     	 1
+Prior cancer                      	 0    	 0     	 1   	 0       	 1         	 0          	 1    	 0     	 0
+Lung disease                      	 0    	 1     	 0   	 0       	 1         	 0          	 1    	 1     	 1
+Pneumonia                         	 0    	 0     	 1   	 0       	 0         	 0          	 0    	 0     	 0
+Hayfever                          	 0    	 1     	 0   	 0       	 0         	 0          	 0    	 0     	 0
+Asbestos exposure                 	 1    	 1     	 1   	 0       	 0         	 0          	 0    	 0     	 0
+Dust exposure                     	 0    	 1     	 0   	 0       	 0         	 0          	 0    	 0     	 0
+Any FDR w/ cancer                 	 0    	 1     	 0   	 0       	 0         	 0          	 0    	 0     	 0
+Any FDR w/ smoking-related cancer 	 0    	 1     	 0   	 0       	 0         	 0          	 0    	 0     	 0
+Any FDR w/ LC                     	 0    	 0     	 1   	 0       	 1         	 0          	 1    	 1     	 1
+Num. FDR w/ LC                    	 0    	 0     	 0   	 0       	 0         	 0          	 0    	 1     	 1
+Early onset FDR w/ LC             	 0    	 0     	 1   	 0       	 0         	 0          	 1    	 0     	 0
+

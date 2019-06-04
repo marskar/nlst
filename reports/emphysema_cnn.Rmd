@@ -21,7 +21,8 @@ packages <-
         "here",
         "dplyr",
         "psych",
-        "pROC"
+        "pROC",
+        "lmtest"
     )
 
 # List packages that are not installed
@@ -45,7 +46,7 @@ t1_nlst_emp <- read_csv(here('data/T1_data.csv'))
 t2_nlst_emp <- read_csv(here('data/T2_data.csv'))
 data_screen_abn_neg <- readRDS(here('data/data_screen_abn_neg.rds'))
 data_screen_abn_neg_emp_t0 <-
-    merge(data_screen_abn_neg, t0_nlst_emp, by = "pid")
+    merge(data_screen_abn_neg, t0_nlst_emp, by = "pid") %>% tidyr::drop_na(c(consolidation, emphysema, p_emph))
 data_screen_abn_neg_emp_t1 <-
     merge(data_screen_abn_neg, t1_nlst_emp, by = "pid")
 data_screen_abn_neg_emp_t2 <-
@@ -61,14 +62,15 @@ data_screen_abn_neg_emp_t2 <-
 glm_screen_neg_t0 <-
     glm(case ~ log1yrisk - 1,
         data = data_screen_abn_neg_emp_t0,
-        family = binomial(link = 'log'))
+        family = binomial(link = 'log'),
+        na.action = na.exclude)
 summary(glm_screen_neg_t0)
 predictions <- predict(glm_screen_neg_t0, type = "response")
 pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)
 
 # Prescreening risk + p_emph
 glm_screen_neg_pemph_t0 <-
-    glm(case ~ log1yrisk + p_emph - 1,
+    glm(case ~ log1yrisk + log1yrisk:p_emph - 1,
         data = data_screen_abn_neg_emp_t0,
         family = binomial(link = 'log'),
         na.action = na.exclude)
@@ -133,15 +135,48 @@ summary(glm_screen_neg_cons_emph_t0)
 predictions <- predict(glm_screen_neg_cons_emph_t0, type = "response")
 pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)
 
+glm_screen_neg_cons_pemph_t0 <-
+    glm(
+        case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:p_emph - 1,
+        data = data_screen_abn_neg_emp_t0,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summary(glm_screen_neg_cons_pemph_t0)
+predictions <- predict(glm_screen_neg_cons_emph_pemph_t0, type = "response")
+pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)
+
 glm_screen_neg_cons_emph_pemph_t0 <-
     glm(
-        case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema + I(log(p_emph)) - 1,
+        case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema + log1yrisk:p_emph - 1,
         data = data_screen_abn_neg_emp_t0,
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
 summary(glm_screen_neg_cons_emph_pemph_t0)
 predictions <- predict(glm_screen_neg_cons_emph_pemph_t0, type = "response")
+pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)
+
+glm_screen_neg_cons_emph_logpemph_t0 <-
+    glm(
+        case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema + I(log(p_emph)) - 1,
+        data = data_screen_abn_neg_emp_t0,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summary(glm_screen_neg_cons_emph_logpemph_t0)
+predictions <- predict(glm_screen_neg_cons_emph_logpemph_t0, type = "response")
+pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)
+
+glm_screen_neg_cons_emph_logitpemph_t0 <-
+    glm(
+        case ~ log1yrisk + log1yrisk:consolidation + log1yrisk:emphysema + I(logit(p_emph)) - 1,
+        data = data_screen_abn_neg_emp_t0,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summary(glm_screen_neg_cons_emph_logitpemph_t0)
+predictions <- predict(glm_screen_neg_cons_emph_logitpemph_t0, type = "response")
 pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)
 ```
 
@@ -150,4 +185,75 @@ pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)
 
 ```{r final-summary}
 anova(glm_screen_neg_cons_t0, glm_screen_neg_cons_emph_t0, glm_screen_neg_cons_emph_pemph_t0)
+
+glm_screen_neg_emph_pemph_t0 <-
+    glm(
+        case ~ log1yrisk + log1yrisk:emphysema + log1yrisk:p_emph - 1,
+        data = data_screen_abn_neg_emp_t0,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summary(glm_screen_neg_emph_pemph_t0)
+predictions <- predict(glm_screen_neg_emph_pemph_t0, type = "response")
+pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)
+
+glm_screen_neg_pemph_t0 <-
+    glm(
+        case ~ log1yrisk + log1yrisk:p_emph - 1,
+        data = data_screen_abn_neg_emp_t0,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summary(glm_screen_neg_pemph_t0)
+predictions <- predict(glm_screen_neg_pemph_t0, type = "response")
+pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)
+
+glm_screen_neg_logpemph_t0 <-
+    glm(
+        case ~ log1yrisk + log1yrisk:I(log(p_emph)) - 1,
+        data = data_screen_abn_neg_emp_t0,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summary(glm_screen_neg_logpemph_t0)
+predictions <- predict(glm_screen_neg_logpemph_t0, type = "response")
+pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)
+
+glm_screen_neg_emph_logpemph_t0 <-
+    glm(
+        case ~ log1yrisk + log1yrisk:emphysema + log1yrisk:I(log(p_emph)) - 1,
+        data = data_screen_abn_neg_emp_t0,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summary(glm_screen_neg_emph_logpemph_t0)
+predictions <- predict(glm_screen_neg_cons_emph_logitpemph_t0, type = "response")
+pROC::auc(data_screen_abn_neg_emp_t0$case, predictions)
 ```
+```{r}
+lmtest::lrtest(glm_screen_neg_t0, glm_screen_neg_emph_t0, glm_screen_neg_pemph_t0, glm_screen_neg_cons_t0, glm_screen_neg_cons_emph_t0, glm_screen_neg_cons_pemph_t0)
+```
+
+```{r}
+BIC(glm_screen_neg_t0)
+BIC(glm_screen_neg_emph_t0)
+BIC(glm_screen_neg_emph_pemph_t0)
+AIC(glm_screen_neg_emph_pemph_t0)
+BIC(glm_screen_neg_pemph_t0)
+BIC(glm_screen_neg_logpemph_t0)
+BIC(glm_screen_neg_logitpemph_t0)
+BIC(glm_screen_neg_cons_t0)
+BIC(glm_screen_neg_cons_emph_t0)
+BIC(glm_screen_neg_cons_pemph_t0)
+BIC(glm_screen_neg_emph_t0)
+BIC(glm_screen_neg_pemph_t0)
+BIC(glm_screen_neg_cons_emph_pemph_t0)
+BIC(glm_screen_neg_cons_emph_logitpemph_t0)
+lrt <- lmtest::lrtest(glm_screen_neg_t0, glm_screen_neg_emph_t0, glm_screen_neg_pemph_t0, glm_screen_neg_emph_pemph_t0)
+lrt
+```
+
+```{r}
+yardstick::ppv_vec(factor(data_screen_abn_neg_emp_t0$case), factor(predict(glm_screen_neg_pemph_t0, type = "response")))
+```
+
