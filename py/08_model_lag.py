@@ -16,6 +16,7 @@ df = df[2::3]
 # df[2::3].isna().sum(axis=1)
 # all(df.pid.value_counts() == 1)
 df = df.dropna(thresh=165, axis=0)
+df.to_csv("data/abn_lrads_lag_prescr_dropna.csv")
 # df.isna().sum()
 col_list = df.columns.to_list()
 # col_list.index('any_nodule')
