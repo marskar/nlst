@@ -43,6 +43,8 @@ for c in cs:
     iteration += 1
 
 coefs = np.array(coefs_)
+l1_path_df = pd.DataFrame(coefs, columns=feature_list[:-1], index=np.log10(cs))
+l1_path_df.to_csv("data/l1_path.csv")
 plt.plot(np.log10(cs), coefs, marker='o')
 plt.xlabel('log(C)')
 plt.ylabel('Coefficients')
@@ -50,5 +52,3 @@ plt.title('Logistic Regression Path')
 # plt.legend(feature_list, loc="right")
 plt.show()
 plt.savefig("img/l1_path.png")
-l1_path_df = pd.DataFrame(coefs, columns=feature_list[:-1], index=np.log10(cs))
-l1_path_df.to_csv("data/l1_path.csv")
