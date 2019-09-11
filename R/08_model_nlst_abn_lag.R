@@ -28,16 +28,19 @@ cox_death <- coxph(
 
 colname_vector <- c(names(lag)[36:162])
 
-lag$prescr.1yrisk <- risk.kovalchik(0, 1, lag, LCRAT, cox_death) 
-lag <- lag %>% 
+lag$prescr_1yrisk <- risk.kovalchik(0, 1, lag, LCRAT, cox_death) 
+lag %>% 
     mutate(
-        log1yrisk = log(prescr.1yrisk),
-        logit1yrisk = log(prescr.1yrisk / (1 - prescr.1yrisk))
+        log1yrisk = log(prescr_1yrisk),
+        logit1yrisk = log(prescr_1yrisk / (1 - prescr_1yrisk))
     ) %>% 
-    drop_na(colname_vector) %>% 
-    filter_all(all_vars(is.finite(.)))
+    rename_at(.vars = vars(ends_with("lag_lag")),
+              .funs = funs(sub("lag_lag$", "t0", .))) %>% 
+    rename_at(.vars = vars(ends_with("lag")),
+              .funs = funs(sub("lag$", "t1", .))) %>% 
+    saveRDS("data/abn_lrads_lag_prescr.rds")
+# %>%  drop_na(colname_vector) %>%  filter_all(all_vars(is.finite(.)))
 
-nrow(lag)
 
 int_full <- glm(paste("case ~ logit1yrisk -1 +",paste0(colname_vector, collapse="+")), data=lag, family=binomial(link='logit'), na.action = "na.exclude")
 bsw.int <- step(int_full, direction="backward", scope = list(lower = case ~ logit1yrisk -1, upper = int_full))
@@ -72,4 +75,3 @@ mod.vars.lasso <-
 summary(mod.vars.lasso)
 
 
-View(lag)
