@@ -62,15 +62,16 @@ data_screen_abn <- merge(
         interval = ifelse(is.na(interval), 0, interval),
         LRcat  = ifelse(is.na(LRcat), 0, LRcat)
     ) %>%
-    mutate(longest.diam = ifelse(is.infinite(longest.diam), 0, longest.diam)) %>%
+    mutate(longest_diam = ifelse(is.infinite(longest_diam), 0, longest_diam)) %>%
     # Make a variable for including observations in Lung-RADS analysis
     mutate(LR_include = (LRcat %in% c("1", "2", "3", "4A", "4B", "4X"))) %>%
     # Create variable for log(diameter)
-    mutate(log_diam = log(longest.diam + 1)) %>%
+    mutate(log_diam = log(longest_diam + 1)) %>%
     # Calculate pre-screening risk inside this dataset
     mutate(prescr_1yrisk = risk.kovalchik(0, 1, ., lcrat, cox_death)) %>%
     mutate(log1yrisk = log(prescr_1yrisk),
-           logit1yrisk = log(prescr_1yrisk / (1 - prescr_1yrisk)))
+           logit1yrisk = log(prescr_1yrisk / (1 - prescr_1yrisk))) %>%
+    saveRDS(here('data/data_screen_abn.rds'))
 
 # This datasets is needed to separately model screen-detected cancers incorporating abnormalities for false-positives
 filter(data_screen_abn, screen_result == 0) %>%
