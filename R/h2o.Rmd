@@ -1,0 +1,507 @@
+---
+title: "H2O Machine Learning NLST"
+author: "Martin Skarzynski"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Install H2O
+
+```{r}
+# install.packages("h2o")
+```
+
+### Start H2O
+
+Load the `h2o` R package and initialize a local h2o cluster.
+
+```{r}
+library("h2o") 
+h2o.init()
+h2o.no_progress()  # Turn off progress bars for notebook readability
+```
+
+
+#### Import data into H2O
+
+
+```{r}
+data_file <- "data/nlst_abn_lcp.csv"
+data <- h2o.importFile(data_file)
+dim(data)
+```
+
+
+
+```{r}
+data$case <- as.factor(data$case)  #encode the binary repsonse as a factor
+h2o.levels(data$bad_loan)  # show the factor levels
+```
+
+#### Inspect the data
+
+```{r}
+h2o.describe(data)
+```
+
+#### Split the data
+
+
+```{r}
+splits <- h2o.splitFrame(data = data, 
+                         ratios = c(0.7, 0.15),  # partition data into 70%, 15% chunks
+                         destination_frames = c("train", "test"), # frame ID (not required)
+                         seed = 1)  # setting a seed will guarantee reproducibility
+train <- splits[[1]]
+test <- splits[[3]]
+```
+
+
+### GLM 
+
+#### Fit a default GLM
+
+
+```{r}
+glm_fit1 <- h2o.glm(x = x, 
+                    y = y, 
+                    training_frame = train,
+                    family = "binomial")  #Like glm() and glmnet(), h2o.glm() has the family argument
+```
+
+#### Model summary
+
+```{r}
+glm_fit1@model$model_summary
+```
+
+#### Variable importance
+
+All H2O models have some concept of variable importance.
+In GLMs, the variable importance is specified by the coefficient magnitudes.
+
+```{r}
+head(h2o.coef(glm_fit1))
+```
+
+Plot the top variables using the `h2o.varimp_plot()` function.
+
+```{r}
+h2o.varimp_plot(glm_fit1)
+```
+
+#### Performance metrics
+
+
+```{r}
+glm_perf1 <- h2o.performance(model = glm_fit1,
+                             newdata = test)
+print(glm_perf1)
+```
+
+
+##### Retreive test set AUC from the performance object
+```{r}
+h2o.auc(glm_perf1)
+```
+
+#### Train a GLM with 5-fold CV
+
+```{r}
+glm_fit2 <- h2o.glm(x = x, 
+                    y = y, 
+                    training_frame = train,
+                    family = "binomial",
+                    nfolds = 5,
+                    seed = 1)
+```
+
+
+```{r}
+h2o.auc(glm_fit2, xval = TRUE)
+```
+
+
+### Random Forest
+
+
+#### Fit a default Random Forest
+
+```{r}
+rf_fit1 <- h2o.randomForest(x = x,
+                            y = y,
+                            training_frame = train,
+                            seed = 1)
+rf_fit1@model$model_summary
+```
+
+
+```{r}
+rf_fit2 <- h2o.randomForest(x = x,
+                            y = y,
+                            training_frame = train,
+                            validation_frame = valid,
+                            ntrees = 200,
+                            seed = 1)
+```
+
+#### Plot scoring history
+
+```{r}
+plot(rf_fit2, metric = "AUC")
+```
+
+
+#### Compare performance of two models
+
+```{r}
+rf_perf1 <- h2o.performance(model = rf_fit1, newdata = test)
+rf_perf2 <- h2o.performance(model = rf_fit2, newdata = test)
+
+# Retreive test set AUC
+h2o.auc(rf_perf1)
+h2o.auc(rf_perf2)
+```
+
+
+#### Train a Random Forest with early stopping
+
+```{r}
+rf_fit3 <- h2o.randomForest(x = x,
+                            y = y,
+                            training_frame = train,
+                            validation_frame = valid,
+                            ntrees = 1000,              # set large for early stopping
+                            stopping_rounds = 5,        # early stopping
+                            stopping_tolerance = 0.001, # early stopping (default)
+                            stopping_metric = "AUC",    # early stopping
+                            score_tree_interval = 20,   # early stopping
+                            seed = 1)
+```
+
+#### Inspect auto-tuned model
+
+```{r}
+rf_fit3@model$model_summary
+```
+
+#### Plot scoring history
+
+```{r}
+plot(rf_fit3, metric = "AUC")
+```
+
+#### View scoring history
+
+```{r}
+sh <- h2o.scoreHistory(rf_fit3)
+sh[, c("number_of_trees", "validation_auc")]
+```
+
+#### Compare performance of the three Random Forest models
+
+```{r}
+rf_perf3 <- h2o.performance(model = rf_fit3, newdata = test)
+
+# Retreive test set AUC
+h2o.auc(rf_perf1)
+h2o.auc(rf_perf2)
+h2o.auc(rf_perf3)
+```
+
+```{r}
+h2o.varimp_plot(rf_fit1)
+h2o.varimp_plot(rf_fit2)
+h2o.varimp_plot(rf_fit3)
+```
+
+### Gradient Boosting Machine (GBM)
+
+#### Train a default GBM
+
+
+```{r}
+gbm_fit1 <- h2o.gbm(x = x,
+                    y = y,
+                    training_frame = train,
+                    seed = 1)
+```
+
+
+```{r}
+gbm_fit2 <- h2o.gbm(x = x,
+                    y = y,
+                    training_frame = train,
+                    validation_frame = valid,
+                    ntrees = 1000,              # set large for early stopping
+                    stopping_rounds = 5,        # early stopping
+                    stopping_tolerance = 0.001, # early stopping (default)
+                    stopping_metric = "AUC",    # early stopping
+                    score_tree_interval = 20,   # early stopping
+                    seed = 1)
+```
+
+#### Compare the performance of the two GBMs
+
+```{r}
+gbm_perf1 <- h2o.performance(model = gbm_fit1, newdata = test)
+gbm_perf2 <- h2o.performance(model = gbm_fit2, newdata = test)
+
+# Retreive test set AUC
+h2o.auc(gbm_perf1)
+h2o.auc(gbm_perf2)
+```
+
+#### Inspect auto-tuned model
+
+Let's see what the optimal number of trees is, based on early stopping:
+
+```{r}
+gbm_fit2@model$model_summary
+```
+
+#### Plot scoring history
+
+Let's plot scoring history.  This time let's look at the peformance based on AUC and also based on logloss (for comparison).
+
+```{r}
+plot(gbm_fit2, metric = "AUC")
+plot(gbm_fit2, metric = "logloss")
+```
+
+#### Variable importance
+
+
+```{r}
+h2o.varimp_plot(gbm_fit2)
+```
+
+### Deep Learning
+
+
+#### Train a default DNN with no early stopping
+
+```{r}
+dl_fit1 <- h2o.deeplearning(x = x,
+                            y = y,
+                            training_frame = train,
+                            seed = 1)
+```
+
+#### Increase the number of epochs
+
+
+```{r}
+dl_fit2 <- h2o.deeplearning(x = x,
+                            y = y,
+                            training_frame = train,
+                            epochs = 20,
+                            stopping_rounds = 0,  # disable early stopping
+                            seed = 1)
+```
+
+#### Train a DNN with early stopping
+
+
+```{r}
+dl_fit3 <- h2o.deeplearning(x = x,
+                            y = y,
+                            training_frame = train,
+                            validation_frame = valid,  
+                            epochs = 20,
+                            score_each_iteration = TRUE,  #early stopping
+                            stopping_rounds = 3,          #early stopping
+                            stopping_metric = "AUC",      #early stopping
+                            stopping_tolerance = 0.001,   #early stopping (default)
+                            seed = 1)
+```
+
+
+#### Compare performance
+
+
+```{r}
+dl_perf1 <- h2o.performance(model = dl_fit1, newdata = test)
+dl_perf2 <- h2o.performance(model = dl_fit2, newdata = test)
+dl_perf3 <- h2o.performance(model = dl_fit3, newdata = test)
+# Retreive test set AUC
+h2o.auc(dl_perf1)
+h2o.auc(dl_perf2)
+h2o.auc(dl_perf3)
+```
+
+#### Plot & view scoring history
+
+
+```{r}
+plot(dl_fit3, metric = "AUC")
+```
+
+## Part 2: Optimizing model performance
+
+### Grid Search
+
+
+#### XGBoost with Random Grid Search
+
+
+#### Grid hyperparamters & search strategy
+
+
+```{r}
+xgb_params <- list(learn_rate = seq(0.1, 0.3, 0.01),
+                   max_depth = seq(2, 10, 1),
+                   sample_rate = seq(0.9, 1.0, 0.05),
+                   col_sample_rate = seq(0.1, 1.0, 0.1))
+
+search_criteria <- list(strategy = "RandomDiscrete",
+                        seed = 1, #seed for the random grid selection process
+                        max_models = 5)  #can also use `max_runtime_secs` instead
+```
+
+#### Execute random grid search
+
+
+```{r}
+xgb_grid <- h2o.grid(algorithm = "xgboost",
+                     grid_id = "xgb_grid",
+                     x = x, y = y,
+                     training_frame = train,
+                     validation_frame = valid,
+                     ntrees = 100,
+                     seed = 1,
+                     hyper_params = xgb_params,
+                     search_criteria = search_criteria)
+```
+
+#### View model performance over the grid
+
+```{r}
+gbm_gridperf <- h2o.getGrid(grid_id = xgb_grid@grid_id, 
+                            sort_by = "auc", 
+                            decreasing = TRUE)
+print(gbm_gridperf)
+```
+
+#### Inspect & evaluate the best model
+
+
+```{r}
+xgb_fit <- h2o.getModel(gbm_gridperf@model_ids[1][[1]])
+```
+
+Evaluate test set AUC.
+
+```{r}
+xgb_perf <- h2o.performance(model = xgb_fit,
+                            newdata = test)
+# Retreive test set AUC
+h2o.auc(xgb_perf)
+```
+
+### Stacked Ensembles
+
+
+#### Train and cross-validate three base models
+
+```{r}
+nfolds <- 5
+
+# Train & Cross-validate a GBM
+my_gbm <- h2o.gbm(x = x,
+                  y = y,
+                  training_frame = train,
+                  distribution = "bernoulli",
+                  nfolds = nfolds,
+                  keep_cross_validation_predictions = TRUE,
+                  seed = 1)
+
+# Train & Cross-validate an XGBoost model
+my_xgb <- h2o.xgboost(x = x,
+                      y = y,
+                      training_frame = train,
+                      nfolds = nfolds,
+                      keep_cross_validation_predictions = TRUE,
+                      seed = 1)
+
+# Train & Cross-validate a DNN
+my_dl <- h2o.deeplearning(x = x,
+                          y = y,
+                          training_frame = train,
+                          nfolds = nfolds,
+                          keep_cross_validation_predictions = TRUE,
+                          seed = 1)
+```
+
+
+#### Train a simple three-model ensemble
+
+```{r}
+# Train a stacked ensemble using the GBM and RF above
+ensemble <- h2o.stackedEnsemble(x = x,
+                                y = y,
+                                training_frame = train,
+                                base_models = list(my_gbm, my_xgb, my_dl))
+```
+
+
+#### Evaluate ensemble performance
+
+```{r}
+# Eval ensemble performance on a test set
+perf <- h2o.performance(ensemble, newdata = test)
+
+# Compare to base learner performance on the test set
+perf_gbm_test <- h2o.performance(my_gbm, newdata = test)
+perf_xgb_test <- h2o.performance(my_xgb, newdata = test)
+perf_dl_test <- h2o.performance(my_dl, newdata = test)
+baselearner_best_auc_test <- max(h2o.auc(perf_gbm_test), 
+                                 h2o.auc(perf_xgb_test),
+                                 h2o.auc(perf_dl_test))
+ensemble_auc_test <- h2o.auc(perf)
+print(sprintf("Best Base-learner Test AUC:  %s", baselearner_best_auc_test))
+print(sprintf("Ensemble Test AUC:  %s", ensemble_auc_test))
+```
+
+
+### AutoML
+
+
+#### Run AutoML 
+
+```{r}
+aml <- h2o.automl(y = y, x = x,
+                  training_frame = train,
+                  max_models = 10,
+                  seed = 1)
+```
+
+
+#### View AutoML leaderboard
+
+```{r}
+lb <- aml@leaderboard
+```
+
+```{r}
+print(lb)
+```
+
+```{r}
+print(lb, n = nrow(lb))
+```
+
+#### Evaluate leader model performance
+
+
+```{r}
+aml_perf <- h2o.performance(model = aml@leader, newdata = test)
+h2o.auc(aml_perf)
+```
+
+
+

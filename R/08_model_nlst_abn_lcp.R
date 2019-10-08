@@ -1,13 +1,13 @@
 library(here)
-library(dplyr)
-library(tidyr)
+library(h2o)
 
-nlst_abn_lcp <- read_rds(here("data/nlst_abn_lcp.rds"))
+h2o.init()
 
-nlst_abn_lag %>%
-    filter(screen_group == "CT") %>%
-    merge(abn, by = "pid") %>%
-    merge(lcp, by = "pid")
+nlst_abn_lcp <- h2o.importFile(here("data/nlst_abn_lcp.csv"))
+nlst_abn_lcp$case <- as.factor(nlst_abn_lcp$case)
+aml <- h2o.automl(y = "case", training_frame = nlst_abn_lcp)
+
+lb <- aml@leaderboard
 
 lag_vars <- function(.data, .group_var, .vars) {
     .data %>%
