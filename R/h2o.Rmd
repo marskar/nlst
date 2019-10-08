@@ -67,6 +67,7 @@ x <- setdiff(names(data), c(
                             y,
                             "candx_days",
                             "cancyr",
+                            "canc_rpt_link",
                             "incidence.years",
                             "lung.cancer.death",
                             "pid",

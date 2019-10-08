@@ -15,3 +15,4 @@ nlst_abn <- nlst %>%
     merge(lcp, by = "pid")
 
 write_csv(nlst_abn, "data/nlst_abn_lcp.csv")
+write_rds(nlst_abn, "data/nlst_abn_lcp.rds")
