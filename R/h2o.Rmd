@@ -62,13 +62,27 @@ test <- splits[[2]]
 
 ```{r}
 y <- "case"
-# Remove the columns that are correlated with the outcome
+# Remove the columns that are irrelevant or correlated with the outcome
 x <- setdiff(names(data), c(
                             y,
                             "candx_days",
                             "cancyr",
                             "incidence.years",
                             "lung.cancer.death",
+                            "pid",
+                            "screen_group",
+                            "rndgroup",
+                            "truefalse_scrnres_ly0",
+                            "truefalse_scrnres_ly1",
+                            "truefalse_scrnres_ly2",
+                            "center",
+                            "lss",
+                            "scr_res0",
+                            "scr_res1",
+                            "scr_res2",
+                            "scr_iso0",
+                            "scr_iso1",
+                            "scr_iso2",
                             "other.cause.death"
                             ))
 print(x)
