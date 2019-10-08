@@ -39,7 +39,7 @@ dim(data)
 
 ```{r}
 data$case <- as.factor(data$case)  #encode the binary repsonse as a factor
-h2o.levels(data$bad_loan)  # show the factor levels
+h2o.levels(data$case)  # show the factor levels
 ```
 
 #### Inspect the data
@@ -53,11 +53,11 @@ h2o.describe(data)
 
 ```{r}
 splits <- h2o.splitFrame(data = data, 
-                         ratios = c(0.7, 0.15),  # partition data into 70%, 15% chunks
+                         ratios = c(0.7),  # partition data into 70%, 15% chunks
                          destination_frames = c("train", "test"), # frame ID (not required)
                          seed = 1)  # setting a seed will guarantee reproducibility
 train <- splits[[1]]
-test <- splits[[3]]
+test <- splits[[2]]
 ```
 
 
@@ -67,8 +67,8 @@ test <- splits[[3]]
 
 
 ```{r}
-glm_fit1 <- h2o.glm(x = x, 
-                    y = y, 
+glm_fit1 <- h2o.glm(x = names(data),
+                    y = "case",
                     training_frame = train,
                     family = "binomial")  #Like glm() and glmnet(), h2o.glm() has the family argument
 ```
@@ -85,7 +85,7 @@ All H2O models have some concept of variable importance.
 In GLMs, the variable importance is specified by the coefficient magnitudes.
 
 ```{r}
-head(h2o.coef(glm_fit1))
+h2o.coef(glm_fit1)
 ```
 
 Plot the top variables using the `h2o.varimp_plot()` function.
