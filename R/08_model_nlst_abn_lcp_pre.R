@@ -96,7 +96,17 @@ x <- setdiff(names(data), c(
     "other.cause.death"
 ))
 print(x)
-
+dim(data)
+# TODO
+# 0. LCRAT only
+# 1. LCRAT + CT
+# 2. LCRAT + CT + LCP_SCORE
+# 3. LCRAT + CT + EMPH_SCORE
+# 4. LCRAT + CT + LCP_SCORE + EMPH_SCORE
+# Describe these models
+# Methods: LCRAT + CT (Hilary) + LCP_SCORE (Optellum)
+# First, prescreen_risk interactions with all binary features
+# Second, prescreen_risk interactions with all discrete (categorical) features
 glm_fit1 <- h2o.glm(x = x,
                     y = y,
                     training_frame = train,
