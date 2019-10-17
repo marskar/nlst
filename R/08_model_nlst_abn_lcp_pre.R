@@ -2,6 +2,7 @@
 library(survival)
 library(glmnet)
 library(dplyr)
+library(stats)
 library(here)
 library(readr)
 library(tidyr)
@@ -96,10 +97,83 @@ x <- setdiff(names(data), c(
     "other.cause.death"
 ))
 print(x)
+length(x)
 dim(data)
+
+prerisks <- rep("prescr_1yrisk", length(x)-1)
+interact_pairs <- mapply(c, prerisks, x[-length(x)], SIMPLIFY=FALSE)
 # TODO
 # 0. LCRAT only
+glm_fit_lcrat_only <- h2o.glm(
+    x = "prescr_1yrisk",
+    y = y,
+    training_frame = train,
+    family = "binomial",
+    lambda_search = TRUE
+)
+
+summary(glm(case ~ log1yrisk:consolidation + log1yrisk:adenopathy -1, data=data, family=binomial(link='log')))
+
 # 1. LCRAT + CT
+glm_fit1 <- h2o.glm(
+    x = c(
+        "prescr_1yrisk",
+        "any_growth",
+        "emphysema",
+        "consolidation",
+        "adenopathy"
+        ),
+    y = y,
+    interaction_pairs = list(
+        c("prescr_1yrisk", "any_growth"),
+        c("prescr_1yrisk", "emphysema"),
+        c("prescr_1yrisk", "consolidation"),
+        c("prescr_1yrisk", "adenopathy")
+    ),
+    training_frame = train,
+    family = "binomial",
+    lambda_search = TRUE
+)
+
+glm_fit1 <- h2o.glm(
+    x = c(
+        "prescr_1yrisk",
+        "any_growth",
+        "emphysema",
+        "consolidation",
+        "adenopathy",
+        "max_lcp_score"
+        ),
+    y = y,
+    interaction_pairs = list(
+        c("prescr_1yrisk", "any_growth"),
+        c("prescr_1yrisk", "emphysema"),
+        c("prescr_1yrisk", "consolidation"),
+        c("prescr_1yrisk", "adenopathy"),
+        c("prescr_1yrisk", "max_lcp_score")
+    ),
+    training_frame = train,
+    family = "binomial",
+    lambda_search = TRUE
+)
+
+glm_fit_all_pairs <- h2o.glm(
+    x = x,
+    y = y,
+    interaction_pairs = interact_pairs,
+    training_frame = train,
+    family = "binomial",
+    lambda_search = TRUE
+)
+
+glm_fit_all <- h2o.glm(
+    x = x,
+    y = y,
+    interactions = x,
+    training_frame = train,
+    family = "binomial",
+    lambda_search = TRUE
+)
 # 2. LCRAT + CT + LCP_SCORE
 # 3. LCRAT + CT + EMPH_SCORE
 # 4. LCRAT + CT + LCP_SCORE + EMPH_SCORE
@@ -107,12 +181,18 @@ dim(data)
 # Methods: LCRAT + CT (Hilary) + LCP_SCORE (Optellum)
 # First, prescreen_risk interactions with all binary features
 # Second, prescreen_risk interactions with all discrete (categorical) features
-glm_fit1 <- h2o.glm(x = x,
-                    y = y,
-                    training_frame = train,
-                    family = "binomial")  #Like glm() and glmnet(), h2o.glm() has the family argument
+glm_fit1 <- h2o.glm(
+    x = x,
+    y = y,
+    training_frame = train,
+    family = "binomial",
+    lambda_search = TRUE
+)  #Like glm() and glmnet(), h2o.glm() has the family argument
 
 glm_fit1@model$model_summary
-h2o.coef(glm_fit1)
+coefs = h2o.coef(glm_fit_lcrat_only)
+coefs = h2o.coef(glm_fit1)
+h2o.coef(glm_fit_all)
+coefs[abs(coefs) > 0]
 h2o.varimp_plot(glm_fit1)
 
