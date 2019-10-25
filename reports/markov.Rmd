@@ -47,9 +47,9 @@ What if you don’t interact image features and prescreening risk?  You get the 
 
  
 
-$log(P(cancer|R,X)) = \alpha log(R) + \beta E$
+$$log(P(cancer|R,X)) = \alpha log(R) + \beta E$$
 
-$P(cancer|R,X) = R^\alpha \cdot exp(\beta E)$
+$$P(cancer|R,X) = R^\alpha \cdot exp(\beta E)$$
 
  
 
@@ -61,7 +61,7 @@ I think we should do model selection on both possibilities.  Model selection wil
 
  
 
-$P(cancer|R,X,W) = R^{\alpha + X\beta} \cdot exp(W\gamma)$.
+$$P(cancer|R,X,W) = R^{\alpha + X\beta} \cdot exp(W\gamma)$$.
 
  
 

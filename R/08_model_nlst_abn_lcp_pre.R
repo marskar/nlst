@@ -104,6 +104,14 @@ prerisks <- rep("prescr_1yrisk", length(x)-1)
 interact_pairs <- mapply(c, prerisks, x[-length(x)], SIMPLIFY=FALSE)
 # TODO
 # 0. LCRAT only
+
+glm_screen_neg <-
+    glm(case ~ log1yrisk - 1,
+        data = data,
+        family = binomial(link = 'log'))
+summary(glm_screen_neg)
+
+
 glm_fit_lcrat_only <- h2o.glm(
     x = "prescr_1yrisk",
     y = y,
