@@ -142,6 +142,31 @@ summarize_model(glm_lcrat_emph_cons_aden)
 # check the n (33k negative screens, same dataset?)
 # use log 1yr risk instead of prescreen risk
 # use log link in glm function
+glm_lcrat_pemph <-
+    glm(
+        case
+        ~ log1yrisk
+        + log1yrisk:p_emph
+        - 1,
+        data = data,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summarize_model(glm_lcrat_pemph)
+
+glm_lcrat_emph_pemph <-
+    glm(
+        case
+        ~ log1yrisk
+        + log1yrisk:emphysema
+        + log1yrisk:p_emph
+        - 1,
+        data = data,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summarize_model(glm_lcrat_emph_pemph)
+
 glm_lcrat_lcp <-
     glm(
         case
@@ -181,7 +206,8 @@ glm_fit_lcrat_lcp_emph <-
 glm_fit_lcrat_lcp_emph_pemph <-
     glm(
         case
-        ~ log1yrisk:max_lcp_score
+        ~ log1yrisk
+        + log1yrisk:max_lcp_score
         + log1yrisk:emphysema
         + log1yrisk:I(log(p_emph))
         - 1,
