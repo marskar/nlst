@@ -1,5 +1,6 @@
 library(readr)
-library(parsnip)
+library(broom)
+library(ggplot2)
 library(h2o) 
 library(here) 
 h2o.init()
@@ -10,6 +11,7 @@ data <- read_rds(here(rds))
 csv <- "data/nlst_abn_lcp_pre.csv"
 h2o_data <- h2o.importFile(here(csv))
 dim(h2o_data)
+names(data)
 names(h2o_data)
 
 h2o_data$case <- as.factor(h2o_data$case)  #encode the binary response as a factor
@@ -59,6 +61,21 @@ print(x)
 length(x)
 dim(h2o_data)
 
+summarize_model <- function(model) {
+    print(paste("AIC =", AIC(model)))
+    print(paste("AUC =", pROC::auc(data$case, predict(model, type = "response"))))
+    ggplot(tidy(model), aes(term, estimate)) +
+        geom_col(aes(fill = term)) +
+        coord_flip()
+}
+
+h2o_summarize_model <- function(model) {
+    print(paste("AIC =", h2o.aic(model)))
+    print(paste("AUC =", h2o.auc(model)))
+    h2o.varimp_plot(model)
+}
+
+
 # prerisks <- rep("log1yrisk", length(x)-1)
 # interact_pairs <- mapply(c, prerisks, x[-length(x)], SIMPLIFY=FALSE)
 # TODO
@@ -68,9 +85,7 @@ glm_lcrat_only <-
         data = data,
         family = binomial(link = 'log'),
         na.action = na.exclude)
-summary(glm_lcrat_only)
-AIC(glm_lcrat_only)
-pROC::auc(data$case, predict(glm_lcrat_only, type = "response"))
+summarize_model(glm_lcrat_only)
 
 h2o_glm_lcrat_only <- h2o.glm(
     x = "log1yrisk",
@@ -79,10 +94,11 @@ h2o_glm_lcrat_only <- h2o.glm(
     family = "binomial",
     lambda_search = TRUE
 )
+h2o_summarize_model(h2o_glm_lcrat_only)
 
 
 # 1. LCRAT + CT
-glm_fit_lcrat_emph <-
+glm_lcrat_emph <-
     glm(
         case
         ~ log1yrisk
@@ -92,9 +108,7 @@ glm_fit_lcrat_emph <-
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
-summary(glm_lcrat_emph)
-AIC(glm_lcrat_emph)
-pROC::auc(data$case, predict(glm_lcrat_emph, type = "response"))
+summarize_model(glm_lcrat_emph)
 
 glm_lcrat_emph_cons <-
     glm(
@@ -107,10 +121,8 @@ glm_lcrat_emph_cons <-
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
-summary(glm_lcrat_emph_cons)
-AIC(glm_lcrat_emph_cons)
-pROC::auc(data$case, predict(glm_lcrat_emph_cons, type = "response"))
-
+summarize_model(glm_lcrat_emph_cons)
+       
 glm_lcrat_emph_cons_aden <-
     glm(
         case
@@ -123,16 +135,26 @@ glm_lcrat_emph_cons_aden <-
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
-summary(glm_lcrat_emph_cons_aden)
-AIC(glm_lcrat_emph_cons_aden)
-pROC::auc(data$case, predict(glm_lcrat_emph_cons_aden, type = "response"))
+summarize_model(glm_lcrat_emph_cons_aden)
 
 # negative only
 # only interactions
 # check the n (33k negative screens, same dataset?)
 # use log 1yr risk instead of prescreen risk
 # use log link in glm function
-glm_fit_lcrat_lcp <-
+glm_lcrat_lcp <-
+    glm(
+        case
+        ~ log1yrisk
+        + log1yrisk:max_lcp_score
+        - 1,
+        data = data,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summarize_model(glm_lcrat_lcp)
+
+glm_lcrat_lcp <-
     glm(
         case
         ~ log1yrisk:max_lcp_score
@@ -141,17 +163,20 @@ glm_fit_lcrat_lcp <-
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
+summarize_model(glm_lcrat_lcp)
 
 glm_fit_lcrat_lcp_emph <-
     glm(
         case
-        ~ log1yrisk:max_lcp_score
+        ~ log1yrisk
+        + log1yrisk:max_lcp_score
         + log1yrisk:emphysema
         - 1,
         data = data,
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
+# summarize_model(glm_lcrat_lcp_emph)
 
 glm_fit_lcrat_lcp_emph_pemph <-
     glm(
@@ -160,32 +185,11 @@ glm_fit_lcrat_lcp_emph_pemph <-
         + log1yrisk:emphysema
         + log1yrisk:I(log(p_emph))
         - 1,
-        data = df,
+        data = data,
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
-
-
-h2o_glm_lcrat_ct <- h2o.glm(
-    x = c(
-        "log1yrisk",
-        "any_growth",
-        "emphysema",
-        "consolidation",
-        "adenopathy"
-        ),
-    y = y,
-    interaction_pairs = list(
-        c("log1yrisk", "any_growth"),
-        c("log1yrisk", "emphysema"),
-        c("log1yrisk", "consolidation"),
-        c("log1yrisk", "adenopathy")
-    ),
-    training_frame = train,
-    family = "binomial",
-    lambda_search = TRUE
-)
-h2o.varimp_plot(h2o_glm_lcrat_ct)
+# summarize_model(glm_lcrat_lcp_emph)
 
 x = c(
     "log1yrisk",
@@ -194,11 +198,32 @@ x = c(
     "adenopathy"
     )
 
+h2o_glm_lcrat_ct <- h2o.glm(
+    x = x,
+    y = y,
+    interaction_pairs = list(
+        c("log1yrisk", "emphysema"),
+        c("log1yrisk", "consolidation"),
+        c("log1yrisk", "adenopathy")
+    ),
+    training_frame = train,
+    family = "binomial",
+    lambda_search = TRUE
+)
+h2o_summarize_model(h2o_glm_lcrat_ct)
+
+x = c(
+    "log1yrisk",
+    "emphysema",
+    "consolidation",
+    "adenopathy",
+    "max_lcp_score"
+    )
+
 h2o_glm_lcrat_ct_lcp <- h2o.glm(
     x = x,
     y = y,
     interaction_pairs = list(
-        c("log1yrisk", "any_growth"),
         c("log1yrisk", "emphysema"),
         c("log1yrisk", "consolidation"),
         c("log1yrisk", "adenopathy"),
@@ -208,7 +233,7 @@ h2o_glm_lcrat_ct_lcp <- h2o.glm(
     family = "binomial",
     lambda_search = TRUE
 )
-h2o.varimp_plot(h2o_glm_lcrat_ct_lcp)
+h2o_summarize_model(h2o_glm_lcrat_ct_lcp)
 
 
 x = c(
@@ -227,7 +252,25 @@ h2o_glm_lcrat_ct_all <- h2o.glm(
     family = "binomial",
     lambda_search = TRUE
 )
-h2o.varimp_plot(h2o_glm_lcrat_ct_all)
+h2o_summarize_model(h2o_glm_lcrat_ct_all)
+
+x = c(
+    "log1yrisk",
+    "emphysema",
+    "consolidation",
+    "adenopathy",
+    "max_lcp_score"
+    )
+
+h2o_glm_lcrat_ct_all <- h2o.glm(
+    x = x,
+    y = y,
+    interactions = x,
+    training_frame = train,
+    family = "binomial",
+    lambda_search = TRUE
+)
+h2o_summarize_model(h2o_glm_lcrat_ct_all)
 
 # 2. LCRAT + CT + LCP_SCORE
 # 3. LCRAT + CT + EMPH_SCORE
@@ -244,12 +287,6 @@ glm_fit1 <- h2o.glm(
     lambda_search = TRUE
 )  #Like glm() and glmnet(), h2o.glm() has the family argument
 
-glm_fit1@model$model_summary
-coefs = h2o.coef(glm_fit_lcrat_only)
-coefs = h2o.coef(glm_fit1)
-h2o.coef(glm_fit_all)
-coefs[abs(coefs) > 0]
-h2o.varimp_plot(glm_fit1)
 
 # TODO 
 # for nested models, use lrt (get p-value)
