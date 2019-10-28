@@ -46,7 +46,7 @@ glm_interacted <-
     glm(
         case
         ~ logit1yrisk
-        + logit1yrisk:diam_cat
+        + logit1yrisk:diam.cat
         + logit1yrisk:any.growth
         + logit1yrisk:emphysema
         + logit1yrisk:consolidation
@@ -56,10 +56,11 @@ glm_interacted <-
         + logit1yrisk:any.mixed
         + logit1yrisk:any.spiculation
         + logit1yrisk:I(any.poor.def == 1 | any.margin.unab == 1)
-        # + logit1yrisk:max_lcp_score
+        + logit1yrisk:max_lcp_score
         - 1,
         data = df,
-        family = binomial(link = 'logit')
+        family = binomial(link = 'log'),
+        na.action = na.exclude
     )
 ```
 

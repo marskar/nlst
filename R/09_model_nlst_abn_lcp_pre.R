@@ -269,21 +269,11 @@ summary(glm_lcrat_lcp_emph)
 summarize_model(glm_lcrat_lcp_emph)
 names(data)
 
-data <- data %>% 
-    mutate(
-        diam_cat = case_when(
-            longest_diam == 0 ~ 1,
-            longest_diam > 0 & longest_diam <= 5 ~ 2,
-            longest_diam > 5 & longest_diam <= 7 ~ 3,
-            longest_diam > 7 & longest_diam <= 10 ~ 4,
-            longest_diam > 10 & longest_diam <= 13 ~ 5,
-            longest_diam > 13 & longest_diam < 100 ~ 6
-        ))
         
-glm_base <-
+glm_logit <-
     glm(
         case
-        ~ logit1yrisk:diam_cat
+        ~ logit1yrisk:diam.cat
         + logit1yrisk:any.growth
         + logit1yrisk:emphysema
         + logit1yrisk:consolidation
@@ -299,10 +289,10 @@ glm_base <-
         family = binomial(link = 'logit')
     )
 
-summary(glm_base)
-tidy(glm_base)
+summary(glm_logit)
+tidy(glm_logit)
 tail(data$max_lcp_score)
-sum(is.na(data$max_lcp_score))
+str(data)
 glm_fit_lcrat_lcp_emph_pemph <-
     glm(
         case
@@ -323,95 +313,6 @@ x = c(
     "consolidation",
     "adenopathy"
     )
-
-h2o_glm_lcrat_ct <- h2o.glm(
-    x = x,
-    y = y,
-    interaction_pairs = list(
-        c("log1yrisk", "emphysema"),
-        c("log1yrisk", "consolidation"),
-        c("log1yrisk", "adenopathy")
-    ),
-    training_frame = train,
-    family = "binomial",
-    lambda_search = TRUE
-)
-h2o_summarize_model(h2o_glm_lcrat_ct)
-
-x = c(
-    "log1yrisk",
-    "emphysema",
-    "consolidation",
-    "adenopathy",
-    "max_lcp_score"
-    )
-
-h2o_glm_lcrat_ct_lcp <- h2o.glm(
-    x = x,
-    y = y,
-    interaction_pairs = list(
-        c("log1yrisk", "emphysema"),
-        c("log1yrisk", "consolidation"),
-        c("log1yrisk", "adenopathy"),
-        c("log1yrisk", "max_lcp_score")
-    ),
-    training_frame = train,
-    family = "binomial",
-    lambda_search = TRUE
-)
-h2o_summarize_model(h2o_glm_lcrat_ct_lcp)
-
-
-x = c(
-    "log1yrisk",
-    "emphysema",
-    "consolidation",
-    "adenopathy",
-    "max_lcp_score"
-    )
-
-h2o_glm_lcrat_ct_all <- h2o.glm(
-    x = x,
-    y = y,
-    interactions = x,
-    training_frame = train,
-    family = "binomial",
-    lambda_search = TRUE
-)
-h2o_summarize_model(h2o_glm_lcrat_ct_all)
-
-x = c(
-    "log1yrisk",
-    "emphysema",
-    "consolidation",
-    "adenopathy",
-    "max_lcp_score"
-    )
-
-h2o_glm_lcrat_ct_all <- h2o.glm(
-    x = x,
-    y = y,
-    interactions = x,
-    training_frame = train,
-    family = "binomial",
-    lambda_search = TRUE
-)
-h2o_summarize_model(h2o_glm_lcrat_ct_all)
-
-# 2. LCRAT + CT + LCP_SCORE
-# 3. LCRAT + CT + EMPH_SCORE
-# 4. LCRAT + CT + LCP_SCORE + EMPH_SCORE
-# Describe these models
-# Methods: LCRAT + CT (Hilary) + LCP_SCORE (Optellum)
-# First, prescreen_risk interactions with all binary features
-# Second, prescreen_risk interactions with all discrete (categorical) features
-glm_fit1 <- h2o.glm(
-    x = x,
-    y = y,
-    training_frame = train,
-    family = "binomial",
-    lambda_search = TRUE
-)  #Like glm() and glmnet(), h2o.glm() has the family argument
 
 
 # TODO 
