@@ -9,7 +9,7 @@ library(tidyr)
 source(here("R/kovalchik.R"))
 plco <- readRDS(here("data/plco.rds"))
 lcp <- read_rds(here("data/nlst_abn_lcp.rds"))
-lcp
+
 t0_nlst_emp <- read_csv(here('data/T0_data.csv'))
 # t1_nlst_emp <- read_csv(here('data/T1_data.csv')) %>% 
 #     mutate(pid = as.numeric(pid))
@@ -53,19 +53,33 @@ cox_death <- coxph(
 )
 
 
-lcp_pre <- lcp %>% 
+lcp_pre <- lcp %>%
     # mutate(log_diam = log(longest_diam + 1)) %>%
     # Calculate pre-screening risk inside this dataset
-    mutate(prescr_1yrisk = risk.kovalchik(0, 1, ., LCRAT, cox_death)) %>%
+    mutate(prescr_1yrisk = risk.kovalchik(0,
+                                          1,
+                                          .,
+                                          LCRAT,
+                                          cox_death)) %>%
     mutate(log1yrisk = log(prescr_1yrisk),
-           logit1yrisk = log(prescr_1yrisk / (1 - prescr_1yrisk))) %>% 
-    identity()
+           logit1yrisk = log(prescr_1yrisk / (1 - prescr_1yrisk))) %>%
+    mutate(
+        diam.cat = case_when(
+            longest.diam == 0 ~ 1,
+            longest.diam > 0 & longest.diam <= 5 ~ 2,
+            longest.diam > 5 & longest.diam <= 7 ~ 3,
+            longest.diam > 7 & longest.diam <= 10 ~ 4,
+            longest.diam > 10 & longest.diam <= 13 ~ 5,
+            longest.diam > 13 & longest.diam < 100 ~ 6
+        )
+    )
+    
 
-lcp_pre_emph <- lcp_pre %>% 
-    left_join(t0_nlst_emp, by = "pid") %>%
-    identity()
+# lcp_pre_emph <- lcp_pre %>% 
+#     left_join(t0_nlst_emp, by = "pid") %>%
+#     identity()
     # full_join(t1_nlst_emp, by = "pid") %>% 
     # full_join(t2_nlst_emp, by = "pid")
 
-lcp_pre_emph %>% write_rds(here("data/nlst_abn_lcp_pre.rds"))
-lcp_pre_emph %>% write_csv(here("data/nlst_abn_lcp_pre.csv"))
+lcp_pre %>% write_rds(here("data/nlst_abn_lcp_pre.rds"))
+lcp_pre %>% write_csv(here("data/nlst_abn_lcp_pre.csv"))

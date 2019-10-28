@@ -1,0 +1,88 @@
+---
+title: "Combining lung cancer prerisk with computed tomography features"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Model terms 
+$R$ - Prerisk, Lung Cancer Risk Assessment Tool (LCRAT) 
+$S$ - Score, Lung Cancer Prediction (LCP)
+$\alpha$ - Prerisk regression coefficient
+$\beta$ - LCP score regression coefficient
+
+## Interacted model
+$$log(P(cancer|R,X)) = \alpha log(R) + \beta E log(R)$$
+$$P(cancer|R,X) = R^\alpha + R^{\beta E}$$
+
+```{r libraries, echo=FALSE}
+library(readr)
+library(broom)
+library(ggplot2)
+library(here) 
+```
+
+```{r functions, echo=FALSE}
+summarize_model <- function(model, data) {
+    print(paste("AIC =", AIC(model)))
+    ggplot(tidy(model), aes(term, estimate)) +
+        geom_col(aes(fill = term)) +
+        coord_flip()
+}
+```
+
+```{r data, echo=FALSE}
+df <- read_rds(here("data/nlst_abn_lcp_pre.rds"))
+```
+
+
+## Base model 
+From `analysis_nlst_split_v24_falsepos_only_v3.R`
+Uninteracted risk not included in original code
+```{r interacted-model}
+glm_interacted <-
+    glm(
+        case
+        ~ logit1yrisk
+        + logit1yrisk:diam_cat
+        + logit1yrisk:any.growth
+        + logit1yrisk:emphysema
+        + logit1yrisk:consolidation
+        + logit1yrisk:adenopathy
+        + logit1yrisk:any.upper
+        + logit1yrisk:I(any.right.mid == 1 | any.lingula == 1)
+        + logit1yrisk:any.mixed
+        + logit1yrisk:any.spiculation
+        + logit1yrisk:I(any.poor.def == 1 | any.margin.unab == 1)
+        # + logit1yrisk:max_lcp_score
+        - 1,
+        data = df,
+        family = binomial(link = 'logit')
+    )
+```
+
+```{r uninteracted-model}
+glm_uninteracted <-
+    glm(
+        case
+        ~ logit1yrisk
+        + diam.cat
+        + any.growth
+        + emphysema
+        + consolidation
+        + adenopathy
+        + any.upper
+        + I(any.right.mid == 1 | any.lingula == 1)
+        + any.mixed
+        + any.spiculation
+        + I(any.poor.def == 1 | any.margin.unab == 1)
+        # + logit1yrisk:max_lcp_score
+        - 1,
+        data = data,
+        family = binomial(link = 'logit')
+    )
+```
+
+

@@ -1,86 +1,25 @@
 library(readr)
 library(broom)
+library(dplyr)
 library(ggplot2)
-library(h2o) 
 library(here) 
-h2o.init()
 
-rds <- "data/nlst_abn_lcp_pre.rds"
-data <- read_rds(here(rds))
-
-csv <- "data/nlst_abn_lcp_pre.csv"
-h2o_data <- h2o.importFile(here(csv))
-dim(h2o_data)
-names(data)
-names(h2o_data)
-
-h2o_data$case <- as.factor(h2o_data$case)  #encode the binary response as a factor
-h2o.levels(h2o_data$case)  # show the factor levels
-
-splits <- h2o.splitFrame(data = h2o_data, 
-                         ratios = c(0.7),  # partition data into 70%, 15% chunks
-                         destination_frames = c("train", "test"), # frame ID (not required)
-                         seed = 1)  # setting a seed will guarantee reproducibility
-train <- splits[[1]]
-test <- splits[[2]]
-
-y <- "case"
-# Remove the columns that are irrelevant or correlated with the outcome
-# x <- setdiff(names(h2o_data), c(
-#     y,
-#     "candx_days",
-#     "cancyr",
-#     "canc_rpt_link",
-#     "incidence.years",
-#     "years.followed",
-#     "lung.cancer.death",
-#     "pid",
-#     "screen_group",
-#     "rndgroup",
-#     "truefalse_scrnres_ly0",
-#     "truefalse_scrnres_ly1",
-#     "truefalse_scrnres_ly2",
-#     "center",
-#     "lss",
-#     "scr_res0",
-#     "scr_res1",
-#     "scr_res2",
-#     "scr_iso0",
-#     "scr_iso1",
-#     "scr_iso2",
-#     "other.cause.death"
-# ))
-x <- c(
-    "log1yrisk",
-    "emphysema",
-    "adenopathy",
-    "consolidation"
-)
-
-print(x)
-length(x)
-dim(h2o_data)
+data <- read_rds(here("data/nlst_abn_lcp_pre.rds"))
 
 summarize_model <- function(model) {
     print(paste("AIC =", AIC(model)))
     print(paste("AUC =",
-                pROC::auc(data$case,
-                          predict(model, type = "response"))))
+                pROC::auc(
+                    data$case,
+                    predict(model, type = "response")
+                )))
     ggplot(tidy(model), aes(term, estimate)) +
         geom_col(aes(fill = term)) +
-        coord_flip()
-}
-
-h2o_summarize_model <- function(model) {
-    print(paste("AIC =", h2o.aic(model)))
-    print(paste("AUC =", h2o.auc(model)))
-    h2o.varimp_plot(model)
+        coord_flip() +
+        theme(legend.position = "none")
 }
 
 
-# prerisks <- rep("log1yrisk", length(x)-1)
-# interact_pairs <- mapply(c, prerisks, x[-length(x)], SIMPLIFY=FALSE)
-# TODO
 # 0. LCRAT only
 glm_lcrat_only <-
     glm(case ~ log1yrisk - 1,
@@ -89,29 +28,100 @@ glm_lcrat_only <-
         na.action = na.exclude)
 summarize_model(glm_lcrat_only)
 
-h2o_glm_lcrat_only <- h2o.glm(
-    x = "log1yrisk",
-    y = y,
-    training_frame = train,
-    family = "binomial",
-    lambda_search = TRUE
-)
-h2o_summarize_model(h2o_glm_lcrat_only)
 
-
-# 1. LCRAT + CT
-glm_lcrat_emph <-
+# 1. LCRAT + CT interacted
+glm_interacted <-
     glm(
         case
         ~ log1yrisk
+        + log1yrisk:diam.cat
+        + log1yrisk:any.growth
         + log1yrisk:emphysema
+        + log1yrisk:consolidation
+        + log1yrisk:adenopathy
+        + log1yrisk:any.upper
+        + log1yrisk:I(any.right.mid == 1 | any.lingula == 1)
+        + log1yrisk:any.mixed
+        + log1yrisk:any.spiculation
+        + log1yrisk:I(any.poor.def == 1 | any.margin.unab == 1)
+        # + log1yrisk:max_lcp_score
         - 1,
         data = data,
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
-summary(glm_lcrat_emph)
-summarize_model(glm_lcrat_emph)
+summary(glm_interacted)
+
+glm_interacted_lcp <-
+    glm(
+        case
+        ~ log1yrisk
+        + log1yrisk:diam.cat
+        + log1yrisk:any.growth
+        + log1yrisk:emphysema
+        + log1yrisk:consolidation
+        + log1yrisk:adenopathy
+        + log1yrisk:any.upper
+        + log1yrisk:I(any.right.mid == 1 | any.lingula == 1)
+        + log1yrisk:any.mixed
+        + log1yrisk:any.spiculation
+        + log1yrisk:I(any.poor.def == 1 | any.margin.unab == 1)
+        + log1yrisk:max_lcp_score
+        - 1,
+        data = data,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+
+summary(glm_interacted_lcp)
+lmtest::lrtest(glm_interacted, glm_interacted_lcp)
+
+# 2. LCRAT + CT uninteracted
+glm_uninteracted <-
+    glm(
+        case
+        ~ log1yrisk
+        + diam.cat
+        + any.growth
+        + emphysema
+        + consolidation
+        + adenopathy
+        + any.upper
+        + I(any.right.mid == 1 | any.lingula == 1)
+        + any.mixed
+        + any.spiculation
+        + log1yrisk:I(any.poor.def == 1 | any.margin.unab == 1)
+        # + log1yrisk:max_lcp_score
+        - 1,
+        data = data,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summary(glm_uninteracted)
+
+glm_uninteracted_lcp <-
+    glm(
+        case
+        ~ log1yrisk
+        + diam.cat
+        + any.growth
+        + emphysema
+        + consolidation
+        + adenopathy
+        + any.upper
+        + I(any.right.mid == 1 | any.lingula == 1)
+        + any.mixed
+        + any.spiculation
+        + log1yrisk:I(any.poor.def == 1 | any.margin.unab == 1)
+        + log1yrisk:max_lcp_score
+        - 1,
+        data = data,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+
+summary(glm_uninteracted_lcp)
+lmtest::lrtest(glm_uninteracted, glm_uninteracted_lcp)
 
 glm_lcrat_emph_cons <-
     glm(
@@ -154,7 +164,7 @@ glm_lcrat_pemph <-
         # + log1yrisk:emphysema
         + log1yrisk:I(log(p_emph))
         - 1,
-        data = data_screen_abn_neg_emp_t0,
+        data = data,
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
@@ -229,22 +239,23 @@ glm_base <-
     glm(
         case
         ~ logit1yrisk:diam_cat
-        + logit1yrisk:any_growth
+        + logit1yrisk:any.growth
         + logit1yrisk:emphysema
         + logit1yrisk:consolidation
         + logit1yrisk:adenopathy
-        + logit1yrisk:any_upper
-        + logit1yrisk:I(any_right_mid == 1 | any_lingula == 1)
-        + logit1yrisk:any_mixed
-        + logit1yrisk:any_spiculation
-        + logit1yrisk:I(any_poor_def == 1 | any_margin_unab == 1)
+        + logit1yrisk:any.upper
+        + logit1yrisk:I(any.right.mid == 1 | any.lingula == 1)
+        + logit1yrisk:any.mixed
+        + logit1yrisk:any.spiculation
+        + logit1yrisk:I(any.poor.def == 1 | any.margin.unab == 1)
         # + logit1yrisk:max_lcp_score
         - 1,
         data = data,
         family = binomial(link = 'logit')
     )
-summary(glm.screen.pos.abn.log )
-tidy(glm.screen.pos.abn.log )
+
+summary(glm_base)
+tidy(glm_base)
 tail(data$max_lcp_score)
 sum(is.na(data$max_lcp_score))
 glm_fit_lcrat_lcp_emph_pemph <-
