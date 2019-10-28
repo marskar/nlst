@@ -21,6 +21,7 @@ The current model *interacts* the image feature and log(pre-screening risk):
 
 $$log(P(cancer|R,X)) = \alpha log(R) + \beta E log(R)$$
 
+
  
 
 The coefficient of the log is equivalent to the exponent on the argument:

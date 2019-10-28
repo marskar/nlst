@@ -63,7 +63,9 @@ dim(h2o_data)
 
 summarize_model <- function(model) {
     print(paste("AIC =", AIC(model)))
-    print(paste("AUC =", pROC::auc(data$case, predict(model, type = "response"))))
+    print(paste("AUC =",
+                pROC::auc(data$case,
+                          predict(model, type = "response"))))
     ggplot(tidy(model), aes(term, estimate)) +
         geom_col(aes(fill = term)) +
         coord_flip()
@@ -108,6 +110,7 @@ glm_lcrat_emph <-
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
+summary(glm_lcrat_emph)
 summarize_model(glm_lcrat_emph)
 
 glm_lcrat_emph_cons <-
@@ -121,6 +124,7 @@ glm_lcrat_emph_cons <-
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
+summary(glm_lcrat_emph_cons)
 summarize_model(glm_lcrat_emph_cons)
        
 glm_lcrat_emph_cons_aden <-
@@ -135,6 +139,7 @@ glm_lcrat_emph_cons_aden <-
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
+summary(glm_lcrat_emph_cons_aden)
 summarize_model(glm_lcrat_emph_cons_aden)
 
 # negative only
@@ -146,12 +151,14 @@ glm_lcrat_pemph <-
     glm(
         case
         ~ log1yrisk
-        + log1yrisk:p_emph
+        # + log1yrisk:emphysema
+        + log1yrisk:I(log(p_emph))
         - 1,
-        data = data,
+        data = data_screen_abn_neg_emp_t0,
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
+summary(glm_lcrat_pemph)
 summarize_model(glm_lcrat_pemph)
 
 glm_lcrat_emph_pemph <-
@@ -189,20 +196,57 @@ glm_lcrat_lcp <-
         na.action = na.exclude
     )
 summarize_model(glm_lcrat_lcp)
-
-glm_fit_lcrat_lcp_emph <-
+names(data)
+glm_lcrat_lcp_emph <-
     glm(
         case
-        ~ log1yrisk
-        + log1yrisk:max_lcp_score
-        + log1yrisk:emphysema
+        ~ logit1yrisk
+        + logit1yrisk:max_lcp_score
+        + logit1yrisk:emphysema
+        + logit1yrisk:consolidation
+        + logit1yrisk:adenopathy
         - 1,
         data = data,
-        family = binomial(link = 'log'),
+        family = binomial(link = 'logit'),
         na.action = na.exclude
     )
-# summarize_model(glm_lcrat_lcp_emph)
+summary(glm_lcrat_lcp_emph)
+summarize_model(glm_lcrat_lcp_emph)
+names(data)
 
+data <- data %>% 
+    mutate(
+        diam_cat = case_when(
+            longest_diam == 0 ~ 1,
+            longest_diam > 0 & longest_diam <= 5 ~ 2,
+            longest_diam > 5 & longest_diam <= 7 ~ 3,
+            longest_diam > 7 & longest_diam <= 10 ~ 4,
+            longest_diam > 10 & longest_diam <= 13 ~ 5,
+            longest_diam > 13 & longest_diam < 100 ~ 6
+        ))
+        
+glm_base <-
+    glm(
+        case
+        ~ logit1yrisk:diam_cat
+        + logit1yrisk:any_growth
+        + logit1yrisk:emphysema
+        + logit1yrisk:consolidation
+        + logit1yrisk:adenopathy
+        + logit1yrisk:any_upper
+        + logit1yrisk:I(any_right_mid == 1 | any_lingula == 1)
+        + logit1yrisk:any_mixed
+        + logit1yrisk:any_spiculation
+        + logit1yrisk:I(any_poor_def == 1 | any_margin_unab == 1)
+        # + logit1yrisk:max_lcp_score
+        - 1,
+        data = data,
+        family = binomial(link = 'logit')
+    )
+summary(glm.screen.pos.abn.log )
+tidy(glm.screen.pos.abn.log )
+tail(data$max_lcp_score)
+sum(is.na(data$max_lcp_score))
 glm_fit_lcrat_lcp_emph_pemph <-
     glm(
         case
