@@ -72,7 +72,6 @@ glm_interacted_lcp <-
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
-
 summary(glm_interacted_lcp)
 lmtest::lrtest(glm_interacted, glm_interacted_lcp)
 
@@ -119,9 +118,55 @@ glm_uninteracted_lcp <-
         family = binomial(link = 'log'),
         na.action = na.exclude
     )
-
 summary(glm_uninteracted_lcp)
 lmtest::lrtest(glm_uninteracted, glm_uninteracted_lcp)
+
+# 3. LCRAT + CT hybrid
+glm_hybrid <-
+    glm(
+        case
+        ~ log1yrisk
+        + log1yrisk*diam.cat
+        + log1yrisk*any.growth
+        + log1yrisk*emphysema
+        + log1yrisk*consolidation
+        + log1yrisk*adenopathy
+        + log1yrisk*any.upper
+        + log1yrisk*I(any.right.mid == 1 | any.lingula == 1)
+        + log1yrisk*any.mixed
+        + log1yrisk*any.spiculation
+        + log1yrisk*I(any.poor.def == 1 | any.margin.unab == 1)
+        # + log1yrisk*max_lcp_score
+        - 1,
+        data = data,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+glimpse(tidy(glm_interacted))
+
+glm_hybrid_lcp <-
+    glm(
+        case
+        ~ log1yrisk
+        + log1yrisk*diam.cat
+        + log1yrisk*any.growth
+        + log1yrisk*emphysema
+        + log1yrisk*consolidation
+        + log1yrisk*adenopathy
+        + log1yrisk*any.upper
+        + log1yrisk*I(any.right.mid == 1 | any.lingula == 1)
+        + log1yrisk*any.mixed
+        + log1yrisk*any.spiculation
+        + log1yrisk*I(any.poor.def == 1 | any.margin.unab == 1)
+        + log1yrisk*max_lcp_score
+        - 1,
+        data = data,
+        family = binomial(link = 'log'),
+        na.action = na.exclude
+    )
+summary(glm_hybrid_lcp)
+glimpse(tidy(glm_hybrid_lcp))
+lmtest::lrtest(glm_hybrid, glm_hybrid_lcp)
 
 glm_lcrat_emph_cons <-
     glm(
