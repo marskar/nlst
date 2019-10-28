@@ -1,25 +1,20 @@
 #### Load packages ####
-packages = c("here",
-             "dplyr")
-
-not_installed <-
-    packages[!(packages %in% installed.packages()[, "Package"])]
-if (length(not_installed))
-    install.packages(not_installed)
-all(lapply(packages, require, character.only = TRUE))
-
+library(dplyr)
+library(here)
+library(readr)
 
 
 #### Load data  ####
 # Load abnormalities dataset https://biometry.nci.nih.gov/plcosub/lung/2009-00516-201204-0017-lung-mortality-risk/nlst/mortalityrisk_abn_080216.csv.zip/@@display-file from https://biometry.nci.nih.gov/plcosub/lung/2009-00516-201204-0017-lung-mortality-risk/nlst
-abn <- read.csv(here("data/mortalityrisk_abn_080216.csv"))
+abn <- read_csv(here("data/mortalityrisk_abn_080216.csv"))
 
 #### Load Lung-RADS data ####
-
-lrads = readRDS('data/lungrads.rds')
+# Created by script 01
+lrads = read_rds(here('data/lungrads.rds'))
 
 #### Organize abnormality data ####
-abn_lrads_merged <- abn %>% group_by(pid, STUDY_YR) %>%
+abn_lrads_merged <- abn %>%
+    group_by(pid, STUDY_YR) %>%
     summarise(
         longest_diam = max(SCT_LONG_DIA, na.rm = T),
         longest_perp_diam = max(SCT_PERP_DIA, na.rm = T),
@@ -108,4 +103,4 @@ abn_lrads_merged <- abn %>% group_by(pid, STUDY_YR) %>%
             LRcat %in% c("3 or 4A", "3,4A, or 4B", "4A or 4B") ~ 7
         )
     ) %>%
-    saveRDS(file = "data/abn_lrads_merged.rds")
+    write_rds(here("data/abn_lrads_merged.rds"))
