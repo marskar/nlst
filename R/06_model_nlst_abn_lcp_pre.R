@@ -9,183 +9,185 @@ data <- read_rds(here("data/nlst_abn_lcp_pre.rds"))
 
 plotpval <- function(model) {
     print(paste("AIC =", AIC(model)))
-    ggplot(tidy(model), aes(term, -log10(p.value))) +
+    ggplot(tidy(model), aes(reorder(term, -log10(p.value)), -log10(p.value))) +
         geom_col(aes(fill = term)) +
         coord_flip() +
-        theme(legend.position = "none")
+        theme(legend.position = "none") +
+        ylab("Negative log10 p-value") +
+        xlab("")
 }
 
 
 # 0. LCRAT only
-glm_lcrat_only_log <-
-    glm(case ~ log1yrisk - 1,
-        data = data,
-        family = binomial(link = 'log'),
-        na.action = na.exclude)
-summary(glm_lcrat_only_log)
-
-
-# 1. LCRAT + CT interacted log ----
-glm_interacted_log <-
-    glm(
-        case
-        ~ log1yrisk
-        + log1yrisk:diam_cat
-        + log1yrisk:any_growth
-        + log1yrisk:emphysema
-        + log1yrisk:consolidation
-        + log1yrisk:adenopathy
-        + log1yrisk:any_upper
-        + log1yrisk:any_right_mid
-        + log1yrisk:any_lingula
-        + log1yrisk:any_mixed
-        + log1yrisk:any_spiculation
-        + log1yrisk:any_poor_def
-        + log1yrisk:any_margin_unab
-        # + log1yrisk:max_lcp_score
-        - 1,
-        data = data,
-        family = binomial(link = 'log'),
-        na.action = na.exclude,
-        start = rep(0.001, 13)
-    )
-summary(glm_interacted_log)
-
-
-glm_interacted_lcp_log  <-
-    glm(
-        case
-        ~ log1yrisk
-        + log1yrisk:diam_cat
-        + log1yrisk:any_growth
-        + log1yrisk:emphysema
-        + log1yrisk:consolidation
-        + log1yrisk:adenopathy
-        + log1yrisk:any_upper
-        + log1yrisk:any_right_mid
-        + log1yrisk:any_lingula
-        + log1yrisk:any_mixed
-        + log1yrisk:any_spiculation
-        + log1yrisk:any_poor_def
-        + log1yrisk:any_margin_unab
-        + log1yrisk:max_lcp_score
-        - 1,
-        data = data,
-        family = binomial(link = 'log'),
-        na.action = na.exclude,
-        start = rep(0.001, 14)
-    )
-summary(glm_interacted_lcp_log)
-plotpval(glm_interacted_lcp_log)
-lmtest::lrtest(glm_interacted_log, glm_interacted_lcp_log)
-
-
-# 2. LCRAT + CT uninteracted log ----
-glm_uninteracted_log <-
-    glm(
-        case
-        ~ log1yrisk
-        + diam_cat
-        + any_growth
-        + emphysema
-        + consolidation
-        + adenopathy
-        + any_upper
-        + any_right_mid
-        + any_lingula
-        + any_mixed
-        + any_spiculation
-        + any_poor_def
-        + any_margin_unab
-        # + log1yrisk:max_lcp_score
-        - 1,
-        data = data,
-        family = binomial(link = 'log'),
-        na.action = na.exclude,
-        start = rep(0.001, 13)
-    )
-summary(glm_uninteracted_log)
-
-glm_uninteracted_lcp_log  <-
-    glm(
-        case
-        ~ log1yrisk
-        + diam_cat
-        + any_growth
-        + emphysema
-        + consolidation
-        + adenopathy
-        + any_upper
-        + any_right_mid
-        + any_lingula
-        + any_mixed
-        + any_spiculation
-        + any_poor_def
-        + any_margin_unab
-        + log1yrisk:max_lcp_score
-        - 1,
-        data = data,
-        family = binomial(link = 'log'),
-        na.action = na.exclude,
-        start = rep(0.001, 14)
-    )
-summary(glm_uninteracted_lcp_log)
-plotpval(glm_uninteracted_lcp_log)
-lmtest::lrtest(glm_uninteracted_log, glm_uninteracted_lcp_log)
-
-
-# 3. LCRAT + CT hybrid log ----
-glm_hybrid_log <-
-    glm(
-        case
-        ~ log1yrisk
-        + log1yrisk*diam_cat
-        + log1yrisk*any_growth
-        + log1yrisk*emphysema
-        + log1yrisk*consolidation
-        + log1yrisk*adenopathy
-        + log1yrisk*any_upper
-        + log1yrisk*any_right_mid
-        + log1yrisk*any_lingula
-        + log1yrisk*any_mixed
-        + log1yrisk*any_spiculation
-        + log1yrisk*any_poor_def
-        + log1yrisk*any_margin_unab
-        # + log1yrisk*max_lcp_score
-        - 1,
-        data = data,
-        family = binomial(link = 'log'),
-        na.action = na.exclude,
-        start = rep(0.001, 25)
-    )
-summary(glm_hybrid_log)
-
-glm_hybrid_lcp_log <-
-    glm(
-        case
-        ~ log1yrisk
-        + log1yrisk*diam_cat
-        + log1yrisk*any_growth
-        + log1yrisk*emphysema
-        + log1yrisk*consolidation
-        + log1yrisk*adenopathy
-        + log1yrisk*any_upper
-        + log1yrisk*any_right_mid
-        + log1yrisk*any_lingula
-        + log1yrisk*any_mixed
-        + log1yrisk*any_spiculation
-        + log1yrisk*any_poor_def
-        + log1yrisk*any_margin_unab
-        + log1yrisk*max_lcp_score
-        - 1,
-        data = data,
-        family = binomial(link = 'log'),
-        na.action = na.exclude,
-        start = rep(0.001, 27)
-    )
-summary(glm_hybrid_lcp_log)
-plotpval(glm_hybrid_lcp_log)
-lmtest::lrtest(glm_hybrid_log, glm_hybrid_lcp_log)
+# glm_lcrat_only_log <-
+#     glm(case ~ log1yrisk - 1,
+#         data = data,
+#         family = binomial(link = 'log'),
+#         na.action = na.exclude)
+# summary(glm_lcrat_only_log)
+# 
+# 
+# # 1. LCRAT + CT interacted log ----
+# glm_interacted_log <-
+#     glm(
+#         case
+#         ~ log1yrisk
+#         + log1yrisk:diam_cat
+#         + log1yrisk:any_growth
+#         + log1yrisk:emphysema
+#         + log1yrisk:consolidation
+#         + log1yrisk:adenopathy
+#         + log1yrisk:any_upper
+#         + log1yrisk:any_right_mid
+#         + log1yrisk:any_lingula
+#         + log1yrisk:any_mixed
+#         + log1yrisk:any_spiculation
+#         + log1yrisk:any_poor_def
+#         + log1yrisk:any_margin_unab
+#         # + log1yrisk:max_lcp_score
+#         - 1,
+#         data = data,
+#         family = binomial(link = 'log'),
+#         na.action = na.exclude,
+#         start = rep(0.001, 13)
+#     )
+# summary(glm_interacted_log)
+# 
+# 
+# glm_interacted_lcp_log  <-
+#     glm(
+#         case
+#         ~ log1yrisk
+#         + log1yrisk:diam_cat
+#         + log1yrisk:any_growth
+#         + log1yrisk:emphysema
+#         + log1yrisk:consolidation
+#         + log1yrisk:adenopathy
+#         + log1yrisk:any_upper
+#         + log1yrisk:any_right_mid
+#         + log1yrisk:any_lingula
+#         + log1yrisk:any_mixed
+#         + log1yrisk:any_spiculation
+#         + log1yrisk:any_poor_def
+#         + log1yrisk:any_margin_unab
+#         + log1yrisk:max_lcp_score
+#         - 1,
+#         data = data,
+#         family = binomial(link = 'log'),
+#         na.action = na.exclude,
+#         start = rep(0.001, 14)
+#     )
+# summary(glm_interacted_lcp_log)
+# plotpval(glm_interacted_lcp_log)
+# lmtest::lrtest(glm_interacted_log, glm_interacted_lcp_log)
+# 
+# 
+# # 2. LCRAT + CT uninteracted log ----
+# glm_uninteracted_log <-
+#     glm(
+#         case
+#         ~ log1yrisk
+#         + diam_cat
+#         + any_growth
+#         + emphysema
+#         + consolidation
+#         + adenopathy
+#         + any_upper
+#         + any_right_mid
+#         + any_lingula
+#         + any_mixed
+#         + any_spiculation
+#         + any_poor_def
+#         + any_margin_unab
+#         # + log1yrisk:max_lcp_score
+#         - 1,
+#         data = data,
+#         family = binomial(link = 'log'),
+#         na.action = na.exclude,
+#         start = rep(0.001, 13)
+#     )
+# summary(glm_uninteracted_log)
+# 
+# glm_uninteracted_lcp_log  <-
+#     glm(
+#         case
+#         ~ log1yrisk
+#         + diam_cat
+#         + any_growth
+#         + emphysema
+#         + consolidation
+#         + adenopathy
+#         + any_upper
+#         + any_right_mid
+#         + any_lingula
+#         + any_mixed
+#         + any_spiculation
+#         + any_poor_def
+#         + any_margin_unab
+#         + log1yrisk:max_lcp_score
+#         - 1,
+#         data = data,
+#         family = binomial(link = 'log'),
+#         na.action = na.exclude,
+#         start = rep(0.001, 14)
+#     )
+# summary(glm_uninteracted_lcp_log)
+# plotpval(glm_uninteracted_lcp_log)
+# lmtest::lrtest(glm_uninteracted_log, glm_uninteracted_lcp_log)
+# 
+# 
+# # 3. LCRAT + CT hybrid log ----
+# glm_hybrid_log <-
+#     glm(
+#         case
+#         ~ log1yrisk
+#         + log1yrisk*diam_cat
+#         + log1yrisk*any_growth
+#         + log1yrisk*emphysema
+#         + log1yrisk*consolidation
+#         + log1yrisk*adenopathy
+#         + log1yrisk*any_upper
+#         + log1yrisk*any_right_mid
+#         + log1yrisk*any_lingula
+#         + log1yrisk*any_mixed
+#         + log1yrisk*any_spiculation
+#         + log1yrisk*any_poor_def
+#         + log1yrisk*any_margin_unab
+#         # + log1yrisk*max_lcp_score
+#         - 1,
+#         data = data,
+#         family = binomial(link = 'log'),
+#         na.action = na.exclude,
+#         start = rep(0.001, 25)
+#     )
+# summary(glm_hybrid_log)
+# 
+# glm_hybrid_lcp_log <-
+#     glm(
+#         case
+#         ~ log1yrisk
+#         + log1yrisk*diam_cat
+#         + log1yrisk*any_growth
+#         + log1yrisk*emphysema
+#         + log1yrisk*consolidation
+#         + log1yrisk*adenopathy
+#         + log1yrisk*any_upper
+#         + log1yrisk*any_right_mid
+#         + log1yrisk*any_lingula
+#         + log1yrisk*any_mixed
+#         + log1yrisk*any_spiculation
+#         + log1yrisk*any_poor_def
+#         + log1yrisk*any_margin_unab
+#         + log1yrisk*max_lcp_score
+#         - 1,
+#         data = data,
+#         family = binomial(link = 'log'),
+#         na.action = na.exclude,
+#         start = rep(0.001, 27)
+#     )
+# summary(glm_hybrid_lcp_log)
+# plotpval(glm_hybrid_lcp_log)
+# lmtest::lrtest(glm_hybrid_log, glm_hybrid_lcp_log)
 
 
 # 0. LCRAT only logit
@@ -354,152 +356,152 @@ plotpval(glm_hybrid_lcp_logit)
 lmtest::lrtest(glm_hybrid_logit, glm_hybrid_lcp_logit)
 
 
-glm_lcrat_emph_cons <-
-    glm(
-        case
-        ~ log1yrisk
-        + log1yrisk:emphysema
-        + log1yrisk:consolidation
-        - 1,
-        data = data,
-        family = binomial(link = 'log'),
-        na.action = na.exclude
-    )
-summary(glm_lcrat_emph_cons)
-plotpval(glm_lcrat_emph_cons)
-       
-glm_lcrat_emph_cons_aden <-
-    glm(
-        case
-        ~ log1yrisk
-        + log1yrisk:emphysema
-        + log1yrisk:consolidation
-        + log1yrisk:adenopathy
-        - 1,
-        data = data,
-        family = binomial(link = 'log'),
-        na.action = na.exclude,
-        start = rep(0.001, 13)
-    )
-summary(glm_lcrat_emph_cons_aden)
-plotpval(glm_lcrat_emph_cons_aden)
-
-# negative only
-# only interactions
-# check the n (33k negative screens, same dataset?)
-# use log 1yr risk instead of prescreen risk
-# use log link in glm function
-glm_lcrat_pemph <-
-    glm(
-        case
-        ~ log1yrisk
-        # + log1yrisk:emphysema
-        + log1yrisk:I(log(p_emph))
-        - 1,
-        data = data,
-        family = binomial(link = 'log'),
-        na.action = na.exclude
-    )
-summary(glm_lcrat_pemph)
-plotpval(glm_lcrat_pemph)
-
-glm_lcrat_emph_pemph <-
-    glm(
-        case
-        ~ log1yrisk
-        + log1yrisk:emphysema
-        + log1yrisk:p_emph
-        - 1,
-        data = data,
-        family = binomial(link = 'log'),
-        na.action = na.exclude
-    )
-plotpval(glm_lcrat_emph_pemph)
-
-glm_lcrat_lcp <-
-    glm(
-        case
-        ~ log1yrisk
-        + log1yrisk:max_lcp_score
-        - 1,
-        data = data,
-        family = binomial(link = 'log'),
-        na.action = na.exclude
-    )
-plotpval(glm_lcrat_lcp)
-
-glm_lcrat_lcp <-
-    glm(
-        case
-        ~ log1yrisk:max_lcp_score
-        - 1,
-        data = data,
-        family = binomial(link = 'log'),
-        na.action = na.exclude
-    )
-plotpval(glm_lcrat_lcp)
-names(data)
-glm_lcrat_lcp_emph <-
-    glm(
-        case
-        ~ logit1yrisk
-        + logit1yrisk:max_lcp_score
-        + logit1yrisk:emphysema
-        + logit1yrisk:consolidation
-        + logit1yrisk:adenopathy
-        - 1,
-        data = data,
-        family = binomial(link = 'logit'),
-        na.action = na.exclude
-    )
-summary(glm_lcrat_lcp_emph)
-plotpval(glm_lcrat_lcp_emph)
-names(data)
-
-        
-glm_logit <-
-    glm(
-        case
-        ~ logit1yrisk:diam_cat
-        + logit1yrisk:any_growth
-        + logit1yrisk:emphysema
-        + logit1yrisk:consolidation
-        + logit1yrisk:adenopathy
-        + logit1yrisk:any_upper
-        + logit1yrisk:I(any_right_mid == 1 | any_lingula == 1)
-        + logit1yrisk:any_mixed
-        + logit1yrisk:any_spiculation
-        + logit1yrisk:I(any_poor_def == 1 | any.margin.unab == 1)
-        # + logit1yrisk:max_lcp_score
-        - 1,
-        data = data,
-        family = binomial(link = 'logit')
-    )
-
-summary(glm_logit)
-tidy(glm_logit)
-tail(data$max_lcp_score)
-str(data)
-glm_fit_lcrat_lcp_emph_pemph <-
-    glm(
-        case
-        ~ log1yrisk
-        + log1yrisk:max_lcp_score
-        + log1yrisk:emphysema
-        + log1yrisk:I(log(p_emph))
-        - 1,
-        data = data,
-        family = binomial(link = 'log'),
-        na.action = na.exclude
-    )
+# glm_lcrat_emph_cons <-
+#     glm(
+#         case
+#         ~ log1yrisk
+#         + log1yrisk:emphysema
+#         + log1yrisk:consolidation
+#         - 1,
+#         data = data,
+#         family = binomial(link = 'log'),
+#         na.action = na.exclude
+#     )
+# summary(glm_lcrat_emph_cons)
+# plotpval(glm_lcrat_emph_cons)
+#        
+# glm_lcrat_emph_cons_aden <-
+#     glm(
+#         case
+#         ~ log1yrisk
+#         + log1yrisk:emphysema
+#         + log1yrisk:consolidation
+#         + log1yrisk:adenopathy
+#         - 1,
+#         data = data,
+#         family = binomial(link = 'log'),
+#         na.action = na.exclude,
+#         start = rep(0.001, 13)
+#     )
+# summary(glm_lcrat_emph_cons_aden)
+# plotpval(glm_lcrat_emph_cons_aden)
+# 
+# # negative only
+# # only interactions
+# # check the n (33k negative screens, same dataset?)
+# # use log 1yr risk instead of prescreen risk
+# # use log link in glm function
+# glm_lcrat_pemph <-
+#     glm(
+#         case
+#         ~ log1yrisk
+#         # + log1yrisk:emphysema
+#         + log1yrisk:I(log(p_emph))
+#         - 1,
+#         data = data,
+#         family = binomial(link = 'log'),
+#         na.action = na.exclude
+#     )
+# summary(glm_lcrat_pemph)
+# plotpval(glm_lcrat_pemph)
+# 
+# glm_lcrat_emph_pemph <-
+#     glm(
+#         case
+#         ~ log1yrisk
+#         + log1yrisk:emphysema
+#         + log1yrisk:p_emph
+#         - 1,
+#         data = data,
+#         family = binomial(link = 'log'),
+#         na.action = na.exclude
+#     )
+# plotpval(glm_lcrat_emph_pemph)
+# 
+# glm_lcrat_lcp <-
+#     glm(
+#         case
+#         ~ log1yrisk
+#         + log1yrisk:max_lcp_score
+#         - 1,
+#         data = data,
+#         family = binomial(link = 'log'),
+#         na.action = na.exclude
+#     )
+# plotpval(glm_lcrat_lcp)
+# 
+# glm_lcrat_lcp <-
+#     glm(
+#         case
+#         ~ log1yrisk:max_lcp_score
+#         - 1,
+#         data = data,
+#         family = binomial(link = 'log'),
+#         na.action = na.exclude
+#     )
+# plotpval(glm_lcrat_lcp)
+# names(data)
+# glm_lcrat_lcp_emph <-
+#     glm(
+#         case
+#         ~ logit1yrisk
+#         + logit1yrisk:max_lcp_score
+#         + logit1yrisk:emphysema
+#         + logit1yrisk:consolidation
+#         + logit1yrisk:adenopathy
+#         - 1,
+#         data = data,
+#         family = binomial(link = 'logit'),
+#         na.action = na.exclude
+#     )
+# summary(glm_lcrat_lcp_emph)
 # plotpval(glm_lcrat_lcp_emph)
-
-x = c(
-    "log1yrisk",
-    "emphysema",
-    "consolidation",
-    "adenopathy"
-    )
+# names(data)
+# 
+#         
+# glm_logit <-
+#     glm(
+#         case
+#         ~ logit1yrisk:diam_cat
+#         + logit1yrisk:any_growth
+#         + logit1yrisk:emphysema
+#         + logit1yrisk:consolidation
+#         + logit1yrisk:adenopathy
+#         + logit1yrisk:any_upper
+#         + logit1yrisk:I(any_right_mid == 1 | any_lingula == 1)
+#         + logit1yrisk:any_mixed
+#         + logit1yrisk:any_spiculation
+#         + logit1yrisk:I(any_poor_def == 1 | any.margin.unab == 1)
+#         # + logit1yrisk:max_lcp_score
+#         - 1,
+#         data = data,
+#         family = binomial(link = 'logit')
+#     )
+# 
+# summary(glm_logit)
+# tidy(glm_logit)
+# tail(data$max_lcp_score)
+# str(data)
+# glm_fit_lcrat_lcp_emph_pemph <-
+#     glm(
+#         case
+#         ~ log1yrisk
+#         + log1yrisk:max_lcp_score
+#         + log1yrisk:emphysema
+#         + log1yrisk:I(log(p_emph))
+#         - 1,
+#         data = data,
+#         family = binomial(link = 'log'),
+#         na.action = na.exclude
+#     )
+# # plotpval(glm_lcrat_lcp_emph)
+# 
+# x = c(
+#     "log1yrisk",
+#     "emphysema",
+#     "consolidation",
+#     "adenopathy"
+#     )
 
 
 # TODO 
