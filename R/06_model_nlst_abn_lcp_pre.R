@@ -25,7 +25,7 @@ glm_lcrat_only_log <-
 summary(glm_lcrat_only_log)
 
 
-# 1. LCRAT + CT interacted
+# 1. LCRAT + CT interacted log ----
 glm_interacted_log <-
     glm(
         case
@@ -80,7 +80,7 @@ plotpval(glm_interacted_lcp_log)
 lmtest::lrtest(glm_interacted_log, glm_interacted_lcp_log)
 
 
-# 2. LCRAT + CT uninteracted
+# 2. LCRAT + CT uninteracted log ----
 glm_uninteracted_log <-
     glm(
         case
@@ -134,7 +134,7 @@ plotpval(glm_uninteracted_lcp_log)
 lmtest::lrtest(glm_uninteracted_log, glm_uninteracted_lcp_log)
 
 
-# 3. LCRAT + CT hybrid
+# 3. LCRAT + CT hybrid log ----
 glm_hybrid_log <-
     glm(
         case
@@ -197,7 +197,7 @@ glm_lcrat_only_logit <-
 summary(glm_lcrat_only_logit)
 
 
-# 1. LCRAT + CT interacted logit
+# 1. LCRAT + CT interacted logit ----
 glm_interacted_logit <-
     glm(
         case
@@ -219,7 +219,6 @@ glm_interacted_logit <-
         data = data,
         family = binomial(link = 'logit'),
         na.action = na.exclude,
-        start = rep(0.001, 13)
     )
 summary(glm_interacted_logit)
 
@@ -245,14 +244,13 @@ glm_interacted_lcp_logit <-
         data = data,
         family = binomial(link = 'logit'),
         na.action = na.exclude,
-        start = rep(0.001, 14)
     )
 summary(glm_interacted_lcp_logit)
 plotpval(glm_interacted_lcp_logit)
 lmtest::lrtest(glm_interacted_logit, glm_interacted_lcp_logit)
 
 
-# 2. LCRAT + CT uninteracted
+# 2. LCRAT + CT uninteracted logit ----
 glm_uninteracted_logit <-
     glm(
         case
@@ -274,7 +272,6 @@ glm_uninteracted_logit <-
         data = data,
         family = binomial(link = 'logit'),
         na.action = na.exclude,
-        start = rep(0.001, 13)
     )
 summary(glm_uninteracted_logit)
 
@@ -299,14 +296,13 @@ glm_uninteracted_lcp_logit <-
         data = data,
         family = binomial(link = 'logit'),
         na.action = na.exclude,
-        start = rep(0.001, 14)
     )
 summary(glm_uninteracted_lcp_logit)
 plotpval(glm_uninteracted_lcp_logit)
 lmtest::lrtest(glm_uninteracted_logit, glm_uninteracted_lcp_logit)
 
 
-# 3. LCRAT + CT hybrid
+# 3. LCRAT + CT hybrid logit ----
 glm_hybrid_logit <-
     glm(
         case
@@ -328,7 +324,6 @@ glm_hybrid_logit <-
         data = data,
         family = binomial(link = 'logit'),
         na.action = na.exclude,
-        start = rep(0.001, 25)
     )
 summary(glm_hybrid_logit)
 
@@ -353,7 +348,6 @@ glm_hybrid_lcp_logit <-
         data = data,
         family = binomial(link = 'logit'),
         na.action = na.exclude,
-        start = rep(0.001, 27)
     )
 summary(glm_hybrid_lcp_logit)
 plotpval(glm_hybrid_lcp_logit)
