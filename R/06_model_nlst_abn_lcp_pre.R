@@ -223,6 +223,8 @@ glm_interacted_logit <-
         na.action = na.exclude,
     )
 summary(glm_interacted_logit)
+levels(data$diam_cat)
+
 
 
 glm_interacted_lcp_logit <-
@@ -241,7 +243,19 @@ glm_interacted_lcp_logit <-
         + logit1yrisk:any_spiculation
         + logit1yrisk:any_poor_def
         + logit1yrisk:any_margin_unab
-        + logit1yrisk:max_lcp_score
+        + max_lcp_score
+        + max_lcp_score:diam_cat
+        + max_lcp_score:any_growth
+        + max_lcp_score:emphysema
+        + max_lcp_score:consolidation
+        + max_lcp_score:adenopathy
+        + max_lcp_score:any_upper
+        + max_lcp_score:any_right_mid
+        + max_lcp_score:any_lingula
+        + max_lcp_score:any_mixed
+        + max_lcp_score:any_spiculation
+        + max_lcp_score:any_poor_def
+        + max_lcp_score:any_margin_unab
         - 1,
         data = data,
         family = binomial(link = 'logit'),

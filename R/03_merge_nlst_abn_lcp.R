@@ -31,7 +31,8 @@ nlst_abn_lrads <- nlst %>%
             longest_diam > 10 & longest_diam <= 13 ~ 5,
             longest_diam > 13 & longest_diam < 100 ~ 6
         )
-    )
+    ) %>% 
+    mutate(diam_cat = as.factor(diam_cat))
     
 
 nlst_abn_lrads %>% write_rds(here("data/nlst_abn_lrads.rds"))
