@@ -21,26 +21,13 @@ nlst_abn_lrads <- nlst %>%
     ) %>%
     mutate(interval = is.numeric(interval)) %>%
     mutate(screen_result = if_else(screen_result %in% c(1, 2, 5, 6), 1, 0)) %>%
-    left_join(abn_lrads, by = c("pid", "interval")) %>% 
-    mutate(
-        diam_cat = case_when(
-            longest_diam == 0 ~ 1,
-            longest_diam > 0 & longest_diam <= 5 ~ 2,
-            longest_diam > 5 & longest_diam <= 7 ~ 3,
-            longest_diam > 7 & longest_diam <= 10 ~ 4,
-            longest_diam > 10 & longest_diam <= 13 ~ 5,
-            longest_diam > 13 & longest_diam < 100 ~ 6
-        )
-    ) %>% 
-    mutate(diam_cat = as.factor(diam_cat))
-    
-
-nlst_abn_lrads %>% write_rds(here("data/nlst_abn_lrads.rds"))
+    left_join(abn_lrads, by = c("pid", "interval"))
 
 lcp <- lcp %>%
     drop_na(max_lcp_score) %>% 
     rename(interval = yr) %>%
     inner_join(nlst_abn_lrads, by = c("pid", "interval"))
 
-write_csv(lcp, "data/nlst_abn_lcp.csv")
-write_rds(lcp, "data/nlst_abn_lcp.rds")
+write_rds(nlst_abn_lrads, here("data/nlst_abn_lrads.rds"))
+write_csv(lcp, here("data/nlst_abn_lcp.csv"))
+write_rds(lcp, here("data/nlst_abn_lcp.rds"))

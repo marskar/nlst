@@ -73,8 +73,17 @@ abn_lrads_merged <- abn %>%
     ) %>%
     # Replace study year with interval
     rename(interval = STUDY_YR) %>%
-    # Set a ceiling of 60 mm to diameter values to prevent influence of extreme outliers
-    mutate(longest_diam = ifelse(longest_diam >= 60, 60, longest_diam)) %>%
+    mutate(
+        diam_cat = case_when(
+            longest_diam == 0 ~ 1,
+            longest_diam > 0 & longest_diam <= 5 ~ 2,
+            longest_diam > 5 & longest_diam <= 7 ~ 3,
+            longest_diam > 7 & longest_diam <= 10 ~ 4,
+            longest_diam > 10 & longest_diam <= 13 ~ 5,
+            longest_diam > 13 & longest_diam < 100 ~ 6
+        )
+    ) %>%
+    mutate(diam_cat = as.factor(diam_cat)) %>%
     # Add a variable for presence of adenopathy or consolidation
     mutate(adenop_consol = as.numeric(adenopathy == 1 |
                                           consolidation == 1)) %>%
