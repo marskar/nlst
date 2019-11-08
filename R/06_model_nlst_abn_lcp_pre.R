@@ -1,11 +1,52 @@
 library(readr)
 library(broom)
 library(dplyr)
+library(tidyr)
 library(ggplot2)
 library(here) 
+library(mlr)
+library(FSelectorRcpp)
+library(FSelector)
 
-data <- read_rds(here("data/nlst_abn_lcp_pre.rds"))
 
+lrnr = makeLearner("classif.logreg")
+data <-
+    read_rds(here("data/nlst_abn_lcp_pre.rds"))
+data <- data %>%
+    select(
+        case,
+        logit1yrisk,
+        diam_cat,
+        any_growth,
+        emphysema,
+        consolidation,
+        adenopathy,
+        any_upper,
+        any_right_mid,
+        any_lingula,
+        any_mixed,
+        any_spiculation,
+        any_poor_def,
+        any_margin_unab,
+        max_lcp_score
+           ) %>% 
+    mutate(diam_cat = as.factor(diam_cat)) %>% 
+    drop_na()
+    # replace_na(list(0))
+names(data)
+task = makeClassifTask(id = "nlst", data, "case")
+ctrl = makeFeatSelControlRandom(maxit = 20L)
+rdesc = makeResampleDesc("Holdout")
+sfeats = selectFeatures(lrnr, task, resampling = rdesc, control = ctrl, show.info = FALSE)
+sfeats$x
+sfeats$y
+analyzeFeatSelResult(sfeats)
+
+unique(data$case)
+
+fv = generateFilterValuesData(task, method = c("FSelectorRcpp_information.gain"))
+
+plotFilterValues(fv) + coord_flip()
 
 plotpval <- function(model) {
     print(paste("AIC =", AIC(model)))

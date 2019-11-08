@@ -1,6 +1,8 @@
 library(dplyr)
 library(here)
 library(readr)
+library(survival)
+source(here("R/kovalchik.R"))
 plco <- read_rds(here("data/plco.rds"))
 lcp <- read_rds(here("data/nlst_abn_lcp.rds"))
 lcrat <- read_rds(here("models/lcrat.rds"))
@@ -28,3 +30,4 @@ lcp_pre <- lcp %>%
 
 lcp_pre %>% write_rds(here("data/nlst_abn_lcp_pre.rds"))
 lcp_pre %>% write_csv(here("data/nlst_abn_lcp_pre.csv"))
+View(lcp_pre)
