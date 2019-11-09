@@ -5,8 +5,10 @@ library(tidyr)
 library(ggplot2)
 library(here) 
 library(mlr)
+library(glmnet)
 library(FSelectorRcpp)
 library(FSelector)
+library(coefplot)
 
 
 lrnr = makeLearner("classif.logreg")
@@ -33,7 +35,19 @@ data <- data %>%
     mutate(diam_cat = as.factor(diam_cat)) %>% 
     drop_na()
     # replace_na(list(0))
-names(data)
+
+# Lasso
+x = model.matrix(case ~ logit1yrisk + logit1yrisk:. -1, data = data)
+cv.lasso = cv.glmnet(x, data$case, alpha=1, family="binomial")
+summary(cv.lasso)
+cv.lasso$glmnet.fit
+cv.lasso$lambda
+cv.lasso$cvm
+plot(x=cv.lasso$lambda, y=cv.lasso$nzero)
+plot(x=cv.lasso$lambda, y=cv.lasso$cvm)
+plot(cv.lasso, type.coef="coef")
+
+# MLR - Wrapper
 task = makeClassifTask(id = "nlst", data, "case")
 ctrl = makeFeatSelControlRandom(maxit = 20L)
 rdesc = makeResampleDesc("Holdout")
@@ -42,8 +56,7 @@ sfeats$x
 sfeats$y
 analyzeFeatSelResult(sfeats)
 
-unique(data$case)
-
+# MLR - Filter
 fv = generateFilterValuesData(task, method = c("FSelectorRcpp_information.gain"))
 
 plotFilterValues(fv) + coord_flip()
@@ -245,18 +258,18 @@ glm_interacted_logit <-
     glm(
         case
         ~ logit1yrisk
-        + logit1yrisk:diam_cat
-        + logit1yrisk:any_growth
-        + logit1yrisk:emphysema
-        + logit1yrisk:consolidation
-        + logit1yrisk:adenopathy
-        + logit1yrisk:any_upper
-        + logit1yrisk:any_right_mid
-        + logit1yrisk:any_lingula
-        + logit1yrisk:any_mixed
-        + logit1yrisk:any_spiculation
-        + logit1yrisk:any_poor_def
-        + logit1yrisk:any_margin_unab
+        + logit1yrisk*diam_cat
+        + logit1yrisk*any_growth
+        + logit1yrisk*emphysema
+        + logit1yrisk*consolidation
+        + logit1yrisk*adenopathy
+        + logit1yrisk*any_upper
+        + logit1yrisk*any_right_mid
+        + logit1yrisk*any_lingula
+        + logit1yrisk*any_mixed
+        + logit1yrisk*any_spiculation
+        + logit1yrisk*any_poor_def
+        + logit1yrisk*any_margin_unab
         # + logit1yrisk:max_lcp_score
         - 1,
         data = data,
@@ -325,7 +338,7 @@ glm_uninteracted_logit <-
         + any_poor_def
         + any_margin_unab
         # + log1yrisk:max_lcp_score
-        - 1,
+        + 1,
         data = data,
         family = binomial(link = 'logit'),
         na.action = na.exclude,
@@ -358,6 +371,11 @@ summary(glm_uninteracted_lcp_logit)
 plotpval(glm_uninteracted_lcp_logit)
 lmtest::lrtest(glm_uninteracted_logit, glm_uninteracted_lcp_logit)
 
+# TODO 
+# Find out what are the variables in abnlist.neg.int in  the negatives script
+# Define final without max_lcp_score (AIC and LRT)
+# And then redo model selection with the score (AIC and LRT)
+# Set up new call with Optellum
 
 # 3. LCRAT + CT hybrid logit ----
 glm_hybrid_logit <-
