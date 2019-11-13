@@ -42,16 +42,20 @@ reg <-
         nvmax = 50,
         method = "exhaustive"
     )
-regsum <- summary(reg)
+regsumm <- summary(reg)
+regbool <- regsumm$which
 
 ## Best model according to BIC
-qplot(seq(length(regsum$bic)), regsum$bic)
-best_bic <- which(regsum$bic == min(regsum$bic))
-names(regsum$which[best_bic, regsum$which[best_bic,]])
+qplot(seq(length(regsumm$bic)), regsumm$bic)
+best_bic <- which.min(regsumm$bic)
+names(regbool[best_bic, regbool[best_bic,]])
+coef(reg, which.min(regsumm$bic))
+
 ## Best model according to Cp
-qplot(seq(length(regsum$cp)), regsum$cp)
-best_cp <- which(regsum$cp == min(regsum$cp))
-names(regsum$which[best_cp, regsum$which[best_cp,]])
+qplot(seq(length(regsumm$cp)), regsumm$cp)
+best_cp <- which.min(regsumm$cp)
+names(regbool[best_cp, regbool[best_cp,]])
+coef(reg, which.min(regsumm$cp))
 
 # Other metrics
 qplot(seq(length(regsum$rss)), regsum$rss)
