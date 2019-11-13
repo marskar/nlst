@@ -48,12 +48,14 @@ regbool <- regsumm$which
 ## Best model according to BIC
 qplot(seq(length(regsumm$bic)), regsumm$bic)
 best_bic <- which.min(regsumm$bic)
-names(regbool[best_bic, regbool[best_bic,]])
+varlist <- names(regbool[best_bic, regbool[best_bic,]])
 coef(reg, which.min(regsumm$bic))
+varlist[-1]
 
 ## Best model according to Cp
 qplot(seq(length(regsumm$cp)), regsumm$cp)
 best_cp <- which.min(regsumm$cp)
+best_cp
 names(regbool[best_cp, regbool[best_cp,]])
 coef(reg, which.min(regsumm$cp))
 
@@ -288,6 +290,71 @@ glm_lcrat_only_logit <-
         family = binomial(link = 'logit'),
         na.action = na.exclude)
 summary(glm_lcrat_only_logit)
+
+# 1. LCRAT + CT interacted logit ----
+
+glm_best_bic <-
+    glm(
+        case
+        ~ logit1yrisk
+        + logit1yrisk:adenopathy
+        + logit1yrisk:any_spiculation
+        + logit1yrisk:any_margin_unab
+        + diam_cat
+        + adenopathy
+        + any_right_mid
+        + any_spiculation
+        + any_poor_def
+        + 1,
+        data = data,
+        family = binomial(link = 'logit'),
+        na.action = na.exclude,
+    )
+summary(glm_best_bic)
+
+glm_best_bic_lcp <-
+    glm(
+        case
+        ~ logit1yrisk
+        + logit1yrisk:diam_cat
+        + logit1yrisk:any_poor_def
+        + logit1yrisk:max_lcp_score
+        + adenopathy
+        + any_upper
+        + any_mixed
+        + max_lcp_score
+        + 1,
+        data = data,
+        family = binomial(link = 'logit'),
+        na.action = na.exclude,
+    )
+broom::tidy(glm_best_bic_lcp)
+
+glm_best_cp <-
+    glm(
+        case
+        ~ logit1yrisk
+        + logit1yrisk:diam_cat
+        + logit1yrisk:adenopathy
+        + logit1yrisk:any_growth
+        + logit1yrisk:any_mixed
+        + logit1yrisk:any_right_mid
+        + logit1yrisk:any_spiculation
+        + logit1yrisk:consolidation
+        + logit1yrisk:any_margin_unab
+        + diam_cat
+        + consolidation
+        + adenopathy
+        + any_right_mid
+        + any_lingula
+        + any_spiculation
+        + any_poor_def
+        + 1,
+        data = data,
+        family = binomial(link = 'logit'),
+        na.action = na.exclude,
+    )
+summary(glm_best_cp)
 
 
 # 1. LCRAT + CT interacted logit ----
