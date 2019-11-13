@@ -6,15 +6,13 @@ library(ggplot2)
 library(here) 
 library(mlr)
 library(glmnet)
-library(FSelectorRcpp)
-library(FSelector)
 library(coefplot)
+library(leaps)
+library(tidyposterior)
+library(rsample)
 
-
-lrnr = makeLearner("classif.logreg")
 data <-
-    read_rds(here("data/nlst_abn_lcp_pre.rds"))
-data <- data %>%
+    read_rds(here("data/nlst_abn_lcp_pre.rds")) %>%
     select(
         case,
         logit1yrisk,
@@ -29,28 +27,62 @@ data <- data %>%
         any_mixed,
         any_spiculation,
         any_poor_def,
-        any_margin_unab,
-        max_lcp_score
+        max_lcp_score,
+        any_margin_unab
            ) %>% 
     mutate(diam_cat = as.factor(diam_cat)) %>% 
     drop_na()
     # replace_na(list(0))
 
-# Lasso
-x = model.matrix(case ~ logit1yrisk + logit1yrisk:. -1, data = data)
-cv.lasso = cv.glmnet(x, data$case, alpha=1, family="binomial")
-summary(cv.lasso)
-cv.lasso$glmnet.fit
-cv.lasso$lambda
-cv.lasso$cvm
-plot(x=cv.lasso$lambda, y=cv.lasso$nzero)
-plot(x=cv.lasso$lambda, y=cv.lasso$cvm)
-plot(cv.lasso, type.coef="coef")
+# Best subset selection using leaps package
+reg <-
+    leaps::regsubsets(
+        x = case ~ logit1yrisk * .,
+        data = data,
+        nvmax = 50,
+        method = "exhaustive"
+    )
+regsum <- summary(reg)
+
+## Best model according to BIC
+qplot(seq(length(regsum$bic)), regsum$bic)
+best_bic <- which(regsum$bic == min(regsum$bic))
+names(regsum$which[best_bic, regsum$which[best_bic,]])
+## Best model according to Cp
+qplot(seq(length(regsum$cp)), regsum$cp)
+best_cp <- which(regsum$cp == min(regsum$cp))
+names(regsum$which[best_cp, regsum$which[best_cp,]])
+
+# Other metrics
+qplot(seq(length(regsum$rss)), regsum$rss)
+qplot(seq(length(regsum$rsq)), regsum$rsq)
+qplot(seq(length(regsum$adjr2)), regsum$adjr2)
+
+# Best model using Lasso
+x = model.matrix(case ~ logit1yrisk + logit1yrisk*. -1, data = data)
+cv.lasso = cv.glmnet(x, data$case, alpha = 1, family = "binomial")
+qplot(x = cv.lasso$lambda, y = cv.lasso$nzero)
+plot(cv.lasso)
+coefpath(cv.lasso)
+coefplot(cv.lasso)
+
+## The lambda resulting in minimal error
+## does not reduce any coefficients to zero
+coef(cv.lasso, s = "lambda.min")
+## most regularized model which has an error
+## within one standard error of the minimum
+coef(cv.lasso, s = "lambda.1se")
+
+# Tidy models
+folds <- vfold_cv(data, v = 10)
+folds$splits
+
 
 # MLR - Wrapper
+lrnr = makeLearner("classif.logreg")
 task = makeClassifTask(id = "nlst", data, "case")
-ctrl = makeFeatSelControlRandom(maxit = 20L)
-rdesc = makeResampleDesc("Holdout")
+ctrl = makeFeatSelControlExhaustive()
+rdesc = makeResampleDesc("CV", iters = 10)
 sfeats = selectFeatures(lrnr, task, resampling = rdesc, control = ctrl, show.info = FALSE)
 sfeats$x
 sfeats$y
@@ -70,6 +102,7 @@ plotpval <- function(model) {
         ylab("Negative log10 p-value") +
         xlab("")
 }
+
 
 
 # 0. LCRAT only
