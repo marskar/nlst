@@ -2,17 +2,13 @@ library(dplyr)
 library(here)
 library(readr)
 library(survival)
+library(purrr)
 source(here("R/kovalchik.R"))
-plco <- read_rds(here("data/plco.rds"))
+plco_control <- read_rds(here("data/plco_control.rds"))
 lcp <- read_rds(here("data/nlst_abn_lcp.rds"))
+emph <- read_rds(here("data/nlst_abn_emph.rds"))
 lcrat <- read_rds(here("models/lcrat.rds"))
 cox_death <- read_rds(here("models/cox_death.rds"))
-
-# t0_nlst_emp <- read_csv(here('data/T0_data.csv'))
-# t1_nlst_emp <- read_csv(here('data/T1_data.csv')) %>%
-#     mutate(pid = as.numeric(pid))
-# t2_nlst_emp <- read_csv(here('data/T2_data.csv')) %>%
-#     mutate(pid = as.numeric(pid))
 
 lcp_pre <- lcp %>%
     # mutate(log_diam = log(longest_diam + 1)) %>%
@@ -21,13 +17,13 @@ lcp_pre <- lcp %>%
     mutate(log1yrisk = log(prescr_1yrisk),
            logit1yrisk = log(prescr_1yrisk / (1 - prescr_1yrisk)))
 
-
-# lcp_pre_emph <- lcp_pre %>%
-#     left_join(t0_nlst_emp, by = "pid") %>%
-#     identity()
-# full_join(t1_nlst_emp, by = "pid") %>%
-# full_join(t2_nlst_emp, by = "pid")
+emph_pre <- emph %>%
+    mutate(prescr_1yrisk = risk.kovalchik(0, 1, ., lcrat, cox_death)) %>%
+    mutate(log1yrisk = log(prescr_1yrisk),
+           logit1yrisk = log(prescr_1yrisk / (1 - prescr_1yrisk)))
 
 lcp_pre %>% write_rds(here("data/nlst_abn_lcp_pre.rds"))
 lcp_pre %>% write_csv(here("data/nlst_abn_lcp_pre.csv"))
-View(lcp_pre)
+
+emph_pre %>% write_rds(here("data/nlst_abn_emph_pre.rds"))
+emph_pre %>% write_csv(here("data/nlst_abn_emph_pre.csv"))

@@ -16,7 +16,7 @@ data <-
     select(
         case,
         logit1yrisk,
-        diam_cat,
+        longest_diam,
         any_growth,
         emphysema,
         consolidation,
@@ -30,51 +30,66 @@ data <-
         max_lcp_score,
         any_margin_unab
            ) %>% 
-    mutate(diam_cat = as.factor(diam_cat)) %>% 
+    filter(is.finite(longest_diam)) %>%
+    # mutate(diam_cat = as.factor(diam_cat)) %>% 
     drop_na()
     # replace_na(list(0))
 
 # Best subset selection using leaps package
 reg <-
     leaps::regsubsets(
-        x = case ~ logit1yrisk * .,
+        x = case ~ logit1yrisk * . + 1,
         data = data,
         nvmax = 50,
         method = "exhaustive"
     )
 regsumm <- summary(reg)
-regbool <- regsumm$which
+bic <- regsumm$bic
+cp <- regsumm$cp
+bool <- regsumm$which
 
 ## Best model according to BIC
-qplot(seq(length(regsumm$bic)), regsumm$bic)
-best_bic <- which.min(regsumm$bic)
-varlist <- names(regbool[best_bic, regbool[best_bic,]])
-coef(reg, which.min(regsumm$bic))
+qplot(seq(length(bic)), bic)
+best_bic <- which.min(bic)
+varlist <- names(bool[best_bic, bool[best_bic,]])
+tidy(coef(reg, best_bic))
 varlist[-1]
+best_bic
+coefs <- bool[best_bic,-1]
+# Get outcome variable
+#form <- as.formula(object$call[[2]])
+#outcome <- all.vars(form)[1]
+# Get model predictors
+predictors <- names(which(coefs == TRUE))
+predictors <- paste(predictors, collapse = "+")
+form <- as.formula(paste0("case", "~", predictors))
 
 ## Best model according to Cp
-qplot(seq(length(regsumm$cp)), regsumm$cp)
-best_cp <- which.min(regsumm$cp)
+qplot(seq(length(cp)), cp)
+best_cp <- which.min(cp)
 best_cp
-names(regbool[best_cp, regbool[best_cp,]])
-coef(reg, which.min(regsumm$cp))
+varlist <- names(bool[best_cp, bool[best_cp,]])
+coef(reg, which.min(cp))
+varlist[-1]
 
 # Other metrics
-qplot(seq(length(regsum$rss)), regsum$rss)
-qplot(seq(length(regsum$rsq)), regsum$rsq)
-qplot(seq(length(regsum$adjr2)), regsum$adjr2)
+qplot(seq(length(regsumm$rss)), regsumm$rss)
+qplot(seq(length(regsumm$rsq)), regsumm$rsq)
+qplot(seq(length(regsumm$adjr2)), regsumm$adjr2)
 
 # Best model using Lasso
-x = model.matrix(case ~ logit1yrisk + logit1yrisk*. -1, data = data)
+x = model.matrix(case ~ logit1yrisk * . + 1,
+                 data = data)
 cv.lasso = cv.glmnet(x, data$case, alpha = 1, family = "binomial")
 qplot(x = cv.lasso$lambda, y = cv.lasso$nzero)
 plot(cv.lasso)
 coefpath(cv.lasso)
 coefplot(cv.lasso)
-
+cv.lasso$lambda.min
+summary(cv.lasso$glmnet.fit)
 ## The lambda resulting in minimal error
 ## does not reduce any coefficients to zero
-coef(cv.lasso, s = "lambda.min")
+tidy(coef(cv.lasso, s = "lambda.min"))
 ## most regularized model which has an error
 ## within one standard error of the minimum
 coef(cv.lasso, s = "lambda.1se")
@@ -297,21 +312,21 @@ glm_best_bic <-
     glm(
         case
         ~ logit1yrisk
-        + logit1yrisk:adenopathy
-        + logit1yrisk:any_spiculation
-        + logit1yrisk:any_margin_unab
+        + logit1yrisk:diam_cat
+        + logit1yrisk:any_poor_def
+        + logit1yrisk:max_lcp_score
         + diam_cat
         + adenopathy
-        + any_right_mid
-        + any_spiculation
-        + any_poor_def
+        + any_upper
+        + any_mixed
+        + max_lcp_score
         + 1,
         data = data,
         family = binomial(link = 'logit'),
         na.action = na.exclude,
     )
-summary(glm_best_bic)
-
+tidy(coef(glm_best_bic))
+coefplot(glm_best_bic)
 glm_best_bic_lcp <-
     glm(
         case
