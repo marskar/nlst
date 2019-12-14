@@ -10,11 +10,17 @@ library(coefplot)
 library(leaps)
 library(tidyposterior)
 library(rsample)
+library(lme4)
 
 data <-
     read_rds(here("data/nlst_abn_lcp_pre.rds")) %>%
     select(
-        case,
+        pid,
+        # case,
+        case_at_next_screen,
+        screen_result,
+        # interval,
+        log1yrisk,
         logit1yrisk,
         longest_diam,
         any_growth,
@@ -30,11 +36,68 @@ data <-
         max_lcp_score,
         any_margin_unab
            ) %>% 
-    filter(is.finite(longest_diam)) %>%
-    # mutate(diam_cat = as.factor(diam_cat)) %>% 
-    drop_na()
-    # replace_na(list(0))
+    filter(is.finite(longest_diam))
+    # mutate(interval = as.factor(interval))
 
+unique(data$interval)
+names(data)
+# Model selection decides whether variable is a main effect or interaction
+# 
+
+# Test homogeneity
+# Interact interval
+# Use case_at_next_screen as the dependent variable (y)
+glm_interacted_logit <-
+    glm(
+        case_at_next_screen
+        ~ interval*logit1yrisk
+        # + interval*longest_diam
+        # + interval*any_growth
+        # + interval*emphysema
+        # + interval*consolidation
+        # + interval*adenopathy
+        # + interval*any_upper
+        # + interval*any_right_mid
+        # + interval*any_lingula
+        # + interval*any_mixed
+        # + interval*any_spiculation
+        # + interval*any_poor_def
+        # + interval*any_margin_unab
+        # + interval*max_lcp_score
+        # + longest_diam
+        # + any_growth
+        # + emphysema
+        # + consolidation
+        # + adenopathy
+        # + any_upper
+        # + any_right_mid
+        # + any_lingula
+        # + any_mixed
+        # + any_spiculation
+        # + any_poor_def
+        # + any_margin_unab
+        + interval*max_lcp_score
+        - 1,
+        data = data,
+        family = binomial(link = 'logit'),
+        na.action = na.exclude,
+    )
+summary(glm_interacted_logit)
+sum(data$case_at_next_screen)
+mixed <- glmer(
+    case
+    ~ logit1yrisk
+    + interval
+    + max_lcp_score
+    + (1
+       + logit1yrisk
+       + max_lcp_score
+       | interval),
+        data = data,
+        family = binomial(link = 'logit'),
+        na.action = na.exclude
+       ) 
+summary(mixed)
 # Best subset selection using leaps package
 reg <-
     leaps::regsubsets(
@@ -56,14 +119,15 @@ tidy(coef(reg, best_bic))
 varlist[-1]
 best_bic
 coefs <- bool[best_bic,-1]
+coefs
 # Get outcome variable
 #form <- as.formula(object$call[[2]])
 #outcome <- all.vars(form)[1]
 # Get model predictors
 predictors <- names(which(coefs == TRUE))
 predictors <- paste(predictors, collapse = "+")
-form <- as.formula(paste0("case", "~", predictors))
-
+form <- as.formula(paste0("case_at_next_screen", "~", predictors))
+form
 ## Best model according to Cp
 qplot(seq(length(cp)), cp)
 best_cp <- which.min(cp)
@@ -307,6 +371,61 @@ glm_lcrat_only_logit <-
 summary(glm_lcrat_only_logit)
 
 # 1. LCRAT + CT interacted logit ----
+glm_best_bic <-
+    glm(
+        form,
+        data = data,
+        family = binomial(link = 'logit'),
+        na.action = na.exclude,
+    )
+summary(glm_best_bic)
+tidy(coef(glm_best_bic))
+coefplot(glm_best_bic)
+glm_best_bic_lcp <-
+    glm(
+        case
+        ~ logit1yrisk
+        + logit1yrisk:longest_diam
+        + logit1yrisk:any_poor_def
+        # + logit1yrisk:max_lcp_score
+        + adenopathy
+        + any_upper
+        + any_mixed
+        # + max_lcp_score
+        + 1,
+        data = data,
+        family = binomial(link = 'logit'),
+        na.action = na.exclude,
+    )
+broom::tidy(glm_best_bic_lcp)
+summary(glm_best_bic_lcp)
+# AUC, AIC
+glm_best_cp <-
+    glm(
+        case
+        ~ logit1yrisk
+        + logit1yrisk:diam_cat
+        + logit1yrisk:adenopathy
+        + logit1yrisk:any_growth
+        + logit1yrisk:any_mixed
+        + logit1yrisk:any_right_mid
+        + logit1yrisk:any_spiculation
+        + logit1yrisk:consolidation
+        + logit1yrisk:any_margin_unab
+        + diam_cat
+        + consolidation
+        + adenopathy
+        + any_right_mid
+        + any_lingula
+        + any_spiculation
+        + any_poor_def
+        + 1,
+        data = data,
+        family = binomial(link = 'logit'),
+        na.action = na.exclude,
+    )
+summary(glm_best_cp)
+
 
 glm_best_bic <-
     glm(
@@ -331,20 +450,21 @@ glm_best_bic_lcp <-
     glm(
         case
         ~ logit1yrisk
-        + logit1yrisk:diam_cat
+        + logit1yrisk:longest_diam
         + logit1yrisk:any_poor_def
-        + logit1yrisk:max_lcp_score
+        # + logit1yrisk:max_lcp_score
         + adenopathy
         + any_upper
         + any_mixed
-        + max_lcp_score
+        # + max_lcp_score
         + 1,
         data = data,
         family = binomial(link = 'logit'),
         na.action = na.exclude,
     )
 broom::tidy(glm_best_bic_lcp)
-
+summary(glm_best_bic_lcp)
+# AUC, AIC
 glm_best_cp <-
     glm(
         case

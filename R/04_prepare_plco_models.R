@@ -1,22 +1,21 @@
+# Libraries ####
 library(dplyr)
 library(here)
 library(readr)
 library(survival)
-# Read in the Kovalchik prediction function
-source(here("R/kovalchik.R"))
 
+# PLCO data ####
 # Control arm of PLCO who had no chest xray
 plco_control <- readRDS(here('data/plco.rds')) %>%
     subset(control.group == 1) %>%
-    identity()
     # In the PLCO dataset,
     # impute missing family history values to 0
-    # mutate(fam_lung_trend = ifelse(is.na(fam.lung.trend),
-    #                                 0,
-    #                                 fam.lung.trend))
-
+    mutate(fam_lung_trend = ifelse(is.na(fam.lung.trend),
+                                    0,
+                                    fam.lung.trend))
 write_rds(plco_control, here("data/plco_control.rds"))
 
+# LCRAT ####
 # To later calculate pre-screening risk, we must first fit the incidence model and other-cause death models in PLCO.
 coxph(
     Surv(incidence.years, case)
@@ -36,6 +35,7 @@ coxph(
 ) %>%
     write_rds('models/lcrat.rds')
 
+# cox_death ####
 coxph(
     Surv(years.followed, other.cause.death)
     ~ female

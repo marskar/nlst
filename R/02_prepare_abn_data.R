@@ -4,15 +4,16 @@ library(here)
 library(readr)
 
 
-#### Load data  ####
-# Load abnormalities dataset https://biometry.nci.nih.gov/plcosub/lung/2009-00516-201204-0017-lung-mortality-risk/nlst/mortalityrisk_abn_080216.csv.zip/@@display-file from https://biometry.nci.nih.gov/plcosub/lung/2009-00516-201204-0017-lung-mortality-risk/nlst
+# Load data ####
+# Load abnormalities dataset https://biometry.nci.nih.gov/plcosub/lung/2009-00516-201204-0017-lung-mortality-risk/nlst/mortalityrisk_abn_080216.csv.zip/@@display-file
+# from https://biometry.nci.nih.gov/plcosub/lung/2009-00516-201204-0017-lung-mortality-risk/nlst
 abn <- read_csv(here("data/mortalityrisk_abn_080216.csv"))
 
-#### Load Lung-RADS data ####
+# Load Lung-RADS data ####
 # Created by script 01
 lrads = read_rds(here('data/lungrads.rds'))
 
-#### Organize abnormality data ####
+# Organize abnormality data ####
 abn_lrads_merged <- abn %>%
     group_by(pid, STUDY_YR) %>%
     summarise(
@@ -99,7 +100,12 @@ abn_lrads_merged <- abn %>%
     mutate(LRcatcol.neg = case_when(
         LRcat == "1" ~ 1,
         LRcat == "2" ~ 2,
-        LRcat %in% c("3", "3 or 4A", "3,4A, or 4B", "4A", "4B", "4X", "4A or 4B") ~ 3
+        LRcat %in% c("3",
+                     "3 or 4A",
+                     "3,4A, or 4B",
+                     "4A", "4B",
+                     "4X",
+                     "4A or 4B") ~ 3
     )) %>%
     # Make an LRcat variable relevant for positive screen groups - this assigns 1 to missing!)
     mutate(
