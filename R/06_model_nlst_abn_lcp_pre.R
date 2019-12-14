@@ -1,9 +1,10 @@
 library(readr)
-library(broom)
+library(here) 
 library(dplyr)
+
+library(broom)
 library(tidyr)
 library(ggplot2)
-library(here) 
 library(mlr)
 library(glmnet)
 library(coefplot)
@@ -39,10 +40,24 @@ data <-
     filter(is.finite(longest_diam))
     # mutate(interval = as.factor(interval))
 
-unique(data$interval)
 names(data)
 # Model selection decides whether variable is a main effect or interaction
 # 
+get_best_bic_formula <- function(form, data, yname) {
+    regsumm <-
+        summary(leaps::regsubsets(
+            x = form,
+            data = data,
+            nvmax = 50,
+            method = "exhaustive"
+        ))
+    best <- which.min(regsumm$bic)
+    coefs <-     regsumm$which[best, -1]
+    predictors <- paste(names(which(coefs == TRUE)), collapse = "+")
+    as.formula(paste0(yname, "~", predictors))
+}
+form <- get_best_bic_formula(case_at_next_screen ~ logit1yrisk * . + 1, data, "case_at_next_screen")
+form
 
 # Test homogeneity
 # Interact interval
