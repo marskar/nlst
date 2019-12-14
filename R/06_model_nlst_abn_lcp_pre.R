@@ -1,6 +1,8 @@
 library(readr)
-library(here) 
+library(here)
 library(dplyr)
+library(stringr)
+library(leaps)
 
 library(broom)
 library(tidyr)
@@ -8,7 +10,6 @@ library(ggplot2)
 library(mlr)
 library(glmnet)
 library(coefplot)
-library(leaps)
 library(tidyposterior)
 library(rsample)
 library(lme4)
@@ -17,9 +18,9 @@ data <-
     read_rds(here("data/nlst_abn_lcp_pre.rds")) %>%
     select(
         pid,
-        # case,
+        diam_cat,
         case_at_next_screen,
-        screen_result,
+        # screen_result,
         # interval,
         log1yrisk,
         logit1yrisk,
@@ -36,13 +37,13 @@ data <-
         any_poor_def,
         max_lcp_score,
         any_margin_unab
-           ) %>% 
+           ) %>%
     filter(is.finite(longest_diam))
     # mutate(interval = as.factor(interval))
 
 names(data)
 # Model selection decides whether variable is a main effect or interaction
-# 
+
 get_best_bic_formula <- function(form, data, yname) {
     regsumm <-
         summary(leaps::regsubsets(
@@ -51,13 +52,27 @@ get_best_bic_formula <- function(form, data, yname) {
             nvmax = 50,
             method = "exhaustive"
         ))
-    best <- which.min(regsumm$bic)
-    coefs <-     regsumm$which[best, -1]
-    predictors <- paste(names(which(coefs == TRUE)), collapse = "+")
-    as.formula(paste0(yname, "~", predictors))
+    coefs <- regsumm$which[which.min(regsumm$bic), -1]
+    predictors <- names(which(coefs == TRUE)) %>%
+        str_remove("\\d$") %>%
+        unique() %>%
+        paste(collapse = "+")
+    as.formula(paste(yname, "~", predictors))
 }
 form <- get_best_bic_formula(case_at_next_screen ~ logit1yrisk * . + 1, data, "case_at_next_screen")
 form
+
+glm_best_bic <-
+    glm(
+        form,
+        data = data,
+        family = binomial(link = 'logit'),
+        na.action = na.exclude,
+    )
+summary(glm_best_bic)
+
+tidy(coef(glm_best_bic))
+coefplot(glm_best_bic)
 
 # Test homogeneity
 # Interact interval
@@ -386,16 +401,6 @@ glm_lcrat_only_logit <-
 summary(glm_lcrat_only_logit)
 
 # 1. LCRAT + CT interacted logit ----
-glm_best_bic <-
-    glm(
-        form,
-        data = data,
-        family = binomial(link = 'logit'),
-        na.action = na.exclude,
-    )
-summary(glm_best_bic)
-tidy(coef(glm_best_bic))
-coefplot(glm_best_bic)
 glm_best_bic_lcp <-
     glm(
         case
