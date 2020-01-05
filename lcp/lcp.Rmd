@@ -9,6 +9,15 @@ csl: journal-of-the-national-cancer-institute.csl
 
 Lung nodule features extracted from data using Lower in lung cancer screens augments prescreening risk
 
+Lorenz plot
+x - percentage of participants from lowest to highest risk (one curve for each method)
+y - percentage of detectable next-screen lung cancers identified
+add a column with predicted risk for each method
+sort on a predicted risk column
+
+false-positives avoided
+
+
 Introduction {#introduction .unnumbered}
 ============
 
