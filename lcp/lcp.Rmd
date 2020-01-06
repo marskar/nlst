@@ -17,7 +17,6 @@ sort on a predicted risk column
 
 false-positives avoided
 
-
 Introduction {#introduction .unnumbered}
 ============
 
