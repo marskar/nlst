@@ -24,7 +24,20 @@ Deep neural network arrhythmia identification with similar yield to cardiologist
   - https://stanfordmlgroup.github.io/projects/ecg/
   - https://www.nature.com/articles/s41591-018-0268-3
 http://mkhalusova.github.io/blog/2019/04/11/ml-model-evaluation-metrics-p1
-https://vicki.substack.com/p/ai-wont-save-healthcare
+breast cancer:
+- https://vicki.substack.com/p/ai-wont-save-healthcare
+- https://www.nature.com/articles/s41586-019-1799-6
+- https://ieeexplore.ieee.org/document/8861376
+- https://twitter.com/kjgeras/status/1185002150360948737
+
+# Tidymodels
+superlearner: https://www.alexpghayes.com/blog/implementing-the-super-learner-with-tidymodels/
+model comparision:
+ - https://rviews.rstudio.com/2019/12/16/bayesian-model-comparison/
+ - https://rdrr.io/cran/tidyposterior/man/contrast_models.html
+ - https://tidymodels.github.io/tidyposterior/
+intro to Tidymodels: https://rviews.rstudio.com/2019/06/19/a-gentle-intro-to-tidymodels/
+applied machine learning workshop: https://github.com/tidymodels/aml-training
 
 
 
