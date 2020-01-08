@@ -1,3 +1,4 @@
+# Libraries ----
 library(readr)
 library(here)
 library(dplyr)
@@ -9,16 +10,18 @@ library(tune)
 library(yardstick)
 library(ggplot2)
 
+# Data ----
 data <-
     read_rds(here("data/nlst_abn_lcp_pre.rds")) %>%
     mutate(case_at_next_screen = as.factor(case_at_next_screen))
 
 
+# Model settings ----
 logit_mod <- logistic_reg(mode = "classification") %>% set_engine("glm")
 ctrl <- control_resamples(save_pred = TRUE)
 cv_train <- vfold_cv(data = data, v = 5, strata = "case_at_next_screen")
 
-# Fit and predict
+# Fit and predict ----
 lcp_pred <-
     fit_resamples(
         case_at_next_screen ~ max_lcp_score,
@@ -96,6 +99,8 @@ all_pred %>%
 
 ggsave("lorenz.png")
 
+# ROC curve ----
+
 all_pred %>% 
     ggplot() +
     aes(x=1 - specificity, y = sensitivity, color = model) +
@@ -103,14 +108,65 @@ all_pred %>%
     geom_segment(x = 0, xend = 1, y = 0, yend =1, linetype="dashed", color="black") +
     xlab("1 - specificity")
 
-fit_resamples(
-        case_at_next_screen
-        ~ max_lcp_score
-        + logit1yrisk
-        + emphysema
-        + consolidation,
-        logit_mod,
-        resamples = cv_train,
-        control = ctrl
-    ) %>%
-    collect_metrics() 
+ggsave("roc.png")
+
+# Gain curve ----
+
+options(yardstick.event_first = FALSE)
+
+lcp_gain <- fit_resamples(
+    case_at_next_screen
+    ~ max_lcp_score,
+    logit_mod,
+    resamples = cv_train,
+    control = ctrl
+) %>%
+    collect_predictions() %>%
+    gain_curve(truth=case_at_next_screen, estimate=.pred_1) %>%
+    mutate(model = "lcp")
+
+lcrat_gain <- fit_resamples(
+    case_at_next_screen
+    ~ logit1yrisk
+    + emphysema
+    + consolidation,
+    logit_mod,
+    resamples = cv_train,
+    control = ctrl
+) %>%
+    collect_predictions() %>%
+    gain_curve(truth=case_at_next_screen, estimate=.pred_1) %>% 
+    mutate(model = "lcrat")
+
+lcp_lcrat_gain <- fit_resamples(
+    case_at_next_screen
+    ~ max_lcp_score
+    + logit1yrisk
+    + emphysema
+    + consolidation,
+    logit_mod,
+    resamples = cv_train,
+    control = ctrl
+) %>%
+    collect_predictions() %>%
+    gain_curve(truth=case_at_next_screen, estimate=.pred_1) %>% 
+    mutate(model = "lcp_lcrat")
+
+lcp_gain %>% autoplot()
+lcrat_gain %>% autoplot()
+lcp_lcrat_gain %>% autoplot()
+
+all_gain <- bind_rows(lcp_gain, lcrat_gain, lcp_lcrat_gain)
+
+all_gain %>% 
+    ggplot() +
+    aes(x=.percent_tested, y = .percent_found, color = model) +
+    geom_line(size = 1.2) +
+    geom_segment(x = 0, xend = 100,
+                 y = 0, yend = 100,
+                 linetype="dashed",
+                 color="black") +
+    xlab("Percent tested") +
+    ylab("Percent found")
+
+ggsave("gain.png")
