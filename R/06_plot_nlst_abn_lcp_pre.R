@@ -30,7 +30,9 @@ lcp_pred <-
     roc_curve(truth=case_at_next_screen, estimate=.pred_1) %>% 
     filter(is.finite(.threshold)) %>% 
     mutate(max_pred = max(.threshold, na.rm=TRUE)) %>% 
-    mutate(prop_max_pred = .threshold / max_pred) %>% 
+    mutate(min_pred = min(.threshold, na.rm=TRUE)) %>% 
+    mutate(min_max_diff = max_pred - min_pred) %>% 
+    mutate(min_max_pred = (.threshold - min_pred) / min_max_diff) %>% 
     mutate(model = "lcp")
 
 lcrat_pred <-
@@ -47,7 +49,9 @@ lcrat_pred <-
     roc_curve(truth=case_at_next_screen, estimate=.pred_1) %>% 
     filter(is.finite(.threshold)) %>% 
     mutate(max_pred = max(.threshold, na.rm=TRUE)) %>% 
-    mutate(prop_max_pred = .threshold / max_pred) %>% 
+    mutate(min_pred = min(.threshold, na.rm=TRUE)) %>% 
+    mutate(min_max_diff = max_pred - min_pred) %>% 
+    mutate(min_max_pred = (.threshold - min_pred) / min_max_diff) %>% 
     mutate(model = "lcrat")
 
 lcp_lcrat_pred <-
@@ -65,26 +69,48 @@ lcp_lcrat_pred <-
     roc_curve(truth=case_at_next_screen, estimate=.pred_1) %>% 
     filter(is.finite(.threshold)) %>% 
     mutate(max_pred = max(.threshold, na.rm=TRUE)) %>% 
-    mutate(prop_max_pred = .threshold / max_pred) %>% 
+    mutate(min_pred = min(.threshold, na.rm=TRUE)) %>% 
+    mutate(min_max_diff = max_pred - min_pred) %>% 
+    mutate(min_max_pred = (.threshold - min_pred) / min_max_diff) %>% 
     mutate(model = "lcp_lcrat")
 
 lcp_pred %>% autoplot()
 lcrat_pred %>% autoplot()
 lcp_lcrat_pred %>% autoplot()
-lcp_roc %>% glimpse()
+lcp_pred %>% glimpse()
+lcrat_pred %>% glimpse()
 
 all_pred <- bind_rows(lcp_pred, lcrat_pred, lcp_lcrat_pred)
 all_pred %>% glimpse()
 
 all_pred %>% 
     ggplot() +
-    aes(x=prop_max_pred, y = sensitivity, color = model) +
-    geom_line() +
-    xlab("Proportion of participants in biennial versus annual screening")
+    aes(x=min_max_pred, y = sensitivity, color = model) +
+    geom_line(size = 1.2) +
+    geom_segment(x = 0, xend = 1,
+                 y = 0, yend =1,
+                 linetype="dashed",
+                 color="black") +
+    xlab("Proportion of participants in biennial versus annual screening") +
+    ylab("Sensitivity (Recall)")
+
+ggsave("lorenz.png")
 
 all_pred %>% 
     ggplot() +
     aes(x=1 - specificity, y = sensitivity, color = model) +
     geom_line() +
-    geom_abline(linetype="dashed") +
+    geom_segment(x = 0, xend = 1, y = 0, yend =1, linetype="dashed", color="black") +
     xlab("1 - specificity")
+
+fit_resamples(
+        case_at_next_screen
+        ~ max_lcp_score
+        + logit1yrisk
+        + emphysema
+        + consolidation,
+        logit_mod,
+        resamples = cv_train,
+        control = ctrl
+    ) %>%
+    collect_metrics() 
