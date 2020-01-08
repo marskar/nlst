@@ -29,7 +29,6 @@ write_rds(nlst_abn_lrads_pre, here("data/nlst_abn_pre.rds"))
 
 # Merge Optellum LCP score with NLST #### 
 lcp <- lcp %>%
-    drop_na(max_lcp_score) %>%
     rename(interval = yr) %>%
     inner_join(nlst_abn_lrads_pre, by = c("pid", "interval"))
 
