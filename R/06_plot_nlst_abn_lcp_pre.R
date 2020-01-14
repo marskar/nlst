@@ -97,22 +97,37 @@ tidy(lcp_lcrat_ct)
 
 # Predict ----
     # 1. LCP
-lcp %>% parsnip::predict.model_fit(data = data)
-tidy(lcp)
+lcp_pred <- lcp %>% predict(new_data = data,
+                            type = "prob")
     # 2. LCRAT+CT (including nodule features) main effects & interactions
-lcrat_ct <- logit_mod %>% fit(lcrat_ct_form, data = data)
-lcrat_ct
-tidy(lcrat_ct)
+lcrat_ct_pred <- lcrat_ct %>%
+    predict(new_data = data, type = "prob")
+lcrat_ct_pred <- lcrat_ct %>%
+    predict(new_data = data, type = "prob")
     # 3. LCP+LCRAT
-lcp_lcrat <- logit_mod %>% fit(lcp_lcrat_form, data = data)
-lcp_lcrat
-tidy(lcp_lcrat)
+lcp_lcrat_pred <- lcp_lcrat %>%
+    predict(new_data = data, type = "prob")
     # 4. LCP+LCRAT+CT (including nodule features) main effects & interactions
-lcp_lcrat_ct <- logit_mod %>% fit(lcp_lcrat_ct_form, data = data)
-lcp_lcrat_ct
-tidy(lcp_lcrat_ct)
+lcp_lcrat_ct_pred <- lcp_lcrat_ct %>%
+    predict(new_data = data, type = "prob")
 
+# df = pred + true ----
 
+true_pred <- bind_cols(truth = data$case_at_next_screen,
+                       lcp = lcp_pred$.pred_1,
+                       lcrat_ct = lcrat_ct_pred$.pred_1,
+                       lcp_lcrat = lcp_lcrat_pred$.pred_1,
+                       lcp_lcrat_ct = lcp_lcrat_ct_pred$.pred_1)
+
+true_pred %>% glimpse()
+
+# Plot ----
+
+options(yardstick.event_first = FALSE)
+gain_curve(true_pred, truth = truth, lcp) %>% autoplot()
+gain_curve(true_pred, truth = truth, lcrat_ct) %>% autoplot()
+gain_curve(true_pred, truth = truth, lcp_lcrat) %>% autoplot()
+gain_curve(true_pred, truth = truth, lcp_lcrat_ct) %>% autoplot()
 
 # Cross-validation ----
 ctrl <- control_resamples(save_pred = TRUE)
