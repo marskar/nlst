@@ -22,14 +22,31 @@ ctrl <- control_resamples(save_pred = TRUE)
 cv_train <- vfold_cv(data = data, v = 5, strata = "case_at_next_screen")
 
 # Fit and predict ----
-lcp_pred <-
+# Refit to all data to get one model & get summary for each model
+# TODO 1. Send model summary tables for all three models (Table 1 for paper)
+    # 1. LCP
+    # 2. LCRAT+CT (including nodule features) main effects & interactions
+    # 3. LCP+LCRAT
+    # 4. LCP+LCRAT+CT (including nodule features) main effects & interactions
+
+# Calculate sensitivity and get predictions 
+
+# TODO 2. Send table of sensitivities and percent exceeding threshold for all three models
+
+# 1. LCP
+
+lcp_mod <-
     fit_resamples(
         case_at_next_screen ~ max_lcp_score,
         logit_mod,
         resamples = cv_train,
         control = ctrl
     ) %>%
-    collect_predictions() %>%
+    identity()
+summary(lcp_mod)
+    collect_predictions()%>%
+    identity()
+
     roc_curve(truth=case_at_next_screen, estimate=.pred_1) %>% 
     filter(is.finite(.threshold)) %>% 
     mutate(max_pred = max(.threshold, na.rm=TRUE)) %>% 
@@ -38,12 +55,14 @@ lcp_pred <-
     mutate(min_max_pred = (.threshold - min_pred) / min_max_diff) %>% 
     mutate(model = "lcp")
 
+# 2. LCRAT+CT (including nodule features) main effects & interactions
 lcrat_pred <-
     fit_resamples(
         case_at_next_screen
         ~ logit1yrisk
         + emphysema
         + consolidation,
+# Put in features based on leaps best subset selection without lcp
         logit_mod,
         resamples = cv_train,
         control = ctrl
@@ -57,6 +76,10 @@ lcrat_pred <-
     mutate(min_max_pred = (.threshold - min_pred) / min_max_diff) %>% 
     mutate(model = "lcrat")
 
+# 3. LCP+LCRAT
+
+# 4. LCP+LCRAT+CT (including nodule features) main effects & interactions
+# Send model summaries 
 lcp_lcrat_pred <-
     fit_resamples(
         case_at_next_screen
@@ -94,7 +117,7 @@ all_pred %>%
                  y = 0, yend =1,
                  linetype="dashed",
                  color="black") +
-    xlab("Proportion of participants in biennial versus annual screening") +
+    xlab("Proportion of participants in annual versus biennial screening") +
     ylab("Sensitivity (Recall)")
 
 ggsave("lorenz.png")

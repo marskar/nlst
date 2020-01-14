@@ -1,6 +1,120 @@
 library(readr)
 library(here)
 library(dplyr)
+library(rsample)
+library(recipes)
+library(parsnip)
+# remotes::install_github("tidymodels/tune")
+library(tune)
+library(yardstick)
+library(ggplot2)
+data("two_class_example")
+two_class_example
+data <-
+    read_rds(here("data/nlst_abn_lcp_pre.rds")) %>%
+    select(
+        # pid,
+        # diam_cat,
+        case_at_next_screen,
+        # screen_result,
+        # interval,
+        log1yrisk,
+        logit1yrisk,
+        # longest_diam,
+        any_growth,
+        emphysema,
+        consolidation,
+        adenopathy,
+        any_upper,
+        any_right_mid,
+        any_lingula,
+        any_mixed,
+        # any_spiculation,
+        # any_poor_def,
+        max_lcp_score,
+        # any_margin_unab
+           ) %>%
+    mutate(case_at_next_screen = as.factor(case_at_next_screen)) %>%
+    identity()
+    # filter(is.finite(longest_diam))
+
+set.seed(93599150)
+logit_mod <- logistic_reg(mode = "classification") %>% set_engine("glm")
+ctrl <- control_resamples(save_pred = TRUE)
+cv_train <- vfold_cv(data = data, v = 5, strata = "case_at_next_screen")
+
+resampled <- fit_resamples(case_at_next_screen ~ ., logit_mod, resamples = cv_train, control = ctrl)
+preds <- collect_predictions(resampled)
+preds %>% filter(case_at_next_screen == 1) %>% arrange(desc(.pred_1))
+preds %>% arrange(desc(.pred_1))
+preds %>% conf_mat(truth=case_at_next_screen, estimate=.pred_class)
+preds
+df_roc <- preds %>% roc_curve(truth=case_at_next_screen, estimate=.pred_1) %>% arrange(.threshold)
+df_pr <- preds %>% pr_curve(truth=case_at_next_screen, estimate=.pred_1) %>% arrange(.threshold)
+df_pr %>% tail
+df_roc %>% head
+df_roc <- df_roc %>% rename(recall = sensitivity)
+lorenz <- df_roc %>% filter(is.finite(.threshold)) %>% mutate(proportion_considered_high_risk = .threshold / max(.threshold))
+lorenz %>% 
+ggplot() +
+    aes(x=proportion_considered_high_risk, y=sensitivity) +
+    geom_line() +
+    geom_abline(intercept=0)
+
+mean(na.omit(preds$.pred_1) < 0.001)
+preds$.pred_1 %in% df_roc$.threshold
+dim(na.omit(df_roc))
+dim(na.omit(df_pr))
+dim(na.omit(preds))
+sum(preds$.pred_1 < 0.000318)
+df_roc %>% na.omit %>% mutate(risk = na.omit(preds$.pred_1))
+full_join(df_pr, df_roc, by="recall")
+preds %>% roc_curve(truth=case_at_next_screen, estimate=.pred_1) %>% autoplot()
+preds %>% pr_curve(truth=case_at_next_screen, estimate=.pred_1) %>% autoplot()
+
+preds %>% lift_curve(truth=case_at_next_screen, estimate=.pred_1) %>% autoplot()
+preds %>% gain_curve(truth=case_at_next_screen, estimate=.pred_1) %>% autoplot()
+
+logit_mod <- 
+    logistic_reg(mode = "classification") %>%
+    set_engine(engine = "glm")
+
+## compute mod on kept part
+cv_fit <- function(splits, mod, ...) {
+    res_mod <-
+        fit(mod, case_at_next_screen ~ ., data = analysis(splits), family = binomial)
+    return(res_mod)
+}
+
+## get predictions on holdout sets
+cv_pred <- function(splits, mod){
+    # Save the 10%
+    holdout <- assessment(splits)
+    pred_assess <- bind_cols(truth = holdout$case_at_next_screen, predict(mod, new_data = holdout))
+    return(pred_assess)
+}
+
+## get probs on holdout sets
+cv_prob <- function(splits, mod){
+    holdout <- assessment(splits)
+    prob_assess <- bind_cols(truth = as.factor(holdout$case_at_next_screen), 
+                             predict(mod, new_data = holdout, type = "prob"))
+    return(prob_assess)
+}
+cv_train %>% mutate(res_mod = map(splits, .f = cv_fit, logit_mod)) ## fit model
+res_cv_train <- 
+    cv_train %>% 
+    mutate(res_mod = map(splits, .f = cv_fit, logit_mod), ## fit model
+           res_pred = map2(splits, res_mod, .f = cv_pred), ## predictions
+           res_prob = map2(splits, res_mod, .f = cv_prob)) ## probabilities
+
+simple_recipe <- function(dataset) {
+    recipe(price ~ ., data = dataset) %>%
+        step_center(all_numeric()) %>%
+        step_scale(all_numeric()) %>%
+        step_dummy(all_nominal())
+}
+
 library(stringr)
 library(leaps)
 
@@ -18,7 +132,7 @@ data <-
     read_rds(here("data/nlst_abn_lcp_pre.rds")) %>%
     select(
         pid,
-        diam_cat,
+        # diam_cat,
         case_at_next_screen,
         # screen_result,
         # interval,
