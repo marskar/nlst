@@ -16,84 +16,419 @@ library(ggplot2)
 # Data ----
 data <-
     read_rds(here("data/nlst_abn_lcp_pre.rds")) %>%
-    mutate(case_at_next_screen = as.factor(case_at_next_screen))
+    mutate(case_at_next_screen = as.factor(case_at_next_screen)) %>% 
+    filter(is.finite(longest_diam))
 
 # Formulas ----
+
+# bss_data <-
+#     read_rds(here("data/nlst_abn_lcp_pre.rds")) %>%
+#     select(
+#         pid,
+#         case_at_next_screen,
+#         logit1yrisk,
+#         diam_cat,
+#         any_growth,
+#         emphysema,
+#         consolidation,
+#         adenopathy,
+#         any_upper,
+#         any_right_mid,
+#         any_lingula,
+#         any_mixed,
+#         any_spiculation,
+#         any_poor_def,
+#         any_margin_unab
+#            )
+
+# names(bss_data)
+# Model selection decides whether variable is a main effect or interaction
+
+# get_best_bic_formula <- function(form, data, yname) {
+#     regsumm <-
+#         summary(leaps::regsubsets(
+#             x = form,
+#             data = bss_data,
+#             nvmax = 50,
+#             method = "exhaustive"
+#         ))
+#     coefs <- regsumm$which[which.min(regsumm$bic), -1]
+#     predictors <- names(which(coefs == TRUE)) %>%
+#         str_remove("\\d$") %>%
+#         unique() %>%
+#         paste(collapse = "+")
+#     as.formula(paste(yname, "~", predictors))
+# }
+
+# lcrat_ct_form <- get_best_bic_formula(
+#     case_at_next_screen
+#     ~ logit1yrisk * . + 1,
+#     bss_data,
+#     "case_at_next_screen")
+# lcrat_ct_form
+
+
+# lcrat_diam_form <- as.formula(
+#             case_at_next_screen
+#             ~ logit1yrisk*diam_cat
+#             + any_growth
+#             + emphysema
+#             + consolidation
+#             + adenopathy
+#             + any_upper
+#             + any_right_mid
+#             + any_lingula
+#             + any_mixed
+#             + any_spiculation
+#             + any_poor_def
+#             + any_margin_unab
+# )
+# 
+# lcrat_grow_form <- as.formula(
+#             case_at_next_screen
+#             ~ logit1yrisk*any_growth
+#             + diam_cat
+#             + emphysema
+#             + consolidation
+#             + adenopathy
+#             + any_upper
+#             + any_right_mid
+#             + any_lingula
+#             + any_mixed
+#             + any_spiculation
+#             + any_poor_def
+#             + any_margin_unab
+# )
+# 
+# lcrat_emph_form <- as.formula(
+#             case_at_next_screen
+#             ~ logit1yrisk*emphysema
+#             + diam_cat
+#             + any_growth
+#             + consolidation
+#             + adenopathy
+#             + any_upper
+#             + any_right_mid
+#             + any_lingula
+#             + any_mixed
+#             + any_spiculation
+#             + any_poor_def
+#             + any_margin_unab
+# )
+# 
+# lcrat_cons_form <- as.formula(
+#             case_at_next_screen
+#             ~ logit1yrisk*consolidation
+#             + diam_cat
+#             + any_growth
+#             + emphysema
+#             + adenopathy
+#             + any_upper
+#             + any_right_mid
+#             + any_lingula
+#             + any_mixed
+#             + any_spiculation
+#             + any_poor_def
+#             + any_margin_unab
+# )
+# 
+# lcrat_aden_form <- as.formula(
+#             case_at_next_screen
+#             ~ logit1yrisk*adenopathy
+#             + diam_cat
+#             + any_growth
+#             + emphysema
+#             + consolidation
+#             + any_upper
+#             + any_right_mid
+#             + any_lingula
+#             + any_mixed
+#             + any_spiculation
+#             + any_poor_def
+#             + any_margin_unab
+# )
+# 
+# lcrat_uppr_form <- as.formula(
+#             case_at_next_screen
+#             ~ logit1yrisk*any_upper
+#             + diam_cat
+#             + any_growth
+#             + emphysema
+#             + consolidation
+#             + adenopathy
+#             + any_right_mid
+#             + any_lingula
+#             + any_mixed
+#             + any_spiculation
+#             + any_poor_def
+#             + any_margin_unab
+# )
+# 
+# lcrat_rmid_form <- as.formula(
+#             case_at_next_screen
+#             ~ logit1yrisk*any_right_mid
+#             + diam_cat
+#             + any_growth
+#             + emphysema
+#             + consolidation
+#             + adenopathy
+#             + any_upper
+#             + any_lingula
+#             + any_mixed
+#             + any_spiculation
+#             + any_poor_def
+#             + any_margin_unab
+# )
+# 
+# lcrat_ling_form <- as.formula(
+#             case_at_next_screen
+#             ~ logit1yrisk*any_lingula
+#             + diam_cat
+#             + any_growth
+#             + emphysema
+#             + consolidation
+#             + adenopathy
+#             + any_upper
+#             + any_right_mid
+#             + any_mixed
+#             + any_spiculation
+#             + any_poor_def
+#             + any_margin_unab
+# )
+# 
+# lcrat_mixd_form <- as.formula(
+#             case_at_next_screen
+#             ~ logit1yrisk*any_mixed
+#             + diam_cat
+#             + any_growth
+#             + emphysema
+#             + consolidation
+#             + adenopathy
+#             + any_upper
+#             + any_right_mid
+#             + any_lingula
+#             + any_spiculation
+#             + any_poor_def
+#             + any_margin_unab
+# )
+# 
+# lcrat_spic_form <- as.formula(
+#             case_at_next_screen
+#             ~ logit1yrisk*any_spiculation
+#             + diam_cat
+#             + any_growth
+#             + emphysema
+#             + consolidation
+#             + adenopathy
+#             + any_upper
+#             + any_right_mid
+#             + any_lingula
+#             + any_mixed
+#             + any_poor_def
+#             + any_margin_unab
+# )
+# 
+# lcrat_poor_form <- as.formula(
+#             case_at_next_screen
+#             ~ logit1yrisk*any_poor_def
+#             + diam_cat
+#             + any_growth
+#             + emphysema
+#             + consolidation
+#             + adenopathy
+#             + any_upper
+#             + any_right_mid
+#             + any_mixed
+#             + any_lingula
+#             + any_spiculation
+#             + any_margin_unab
+# )
+# 
+# lcrat_marg_form <- as.formula(
+#             case_at_next_screen
+#             ~ logit1yrisk*any_margin_unab
+#             + diam_cat
+#             + any_growth
+#             + emphysema
+#             + consolidation
+#             + adenopathy
+#             + any_upper
+#             + any_right_mid
+#             + any_mixed
+#             + any_lingula
+#             + any_spiculation
+#             + any_poor_def
+# )
+
 lcp_form <- as.formula(case_at_next_screen ~ max_lcp_score)
 
 lcp_lcrat_form <- as.formula(case_at_next_screen ~ max_lcp_score + logit1yrisk)
 
-bss_data <-
-    read_rds(here("data/nlst_abn_lcp_pre.rds")) %>%
-    select(
-        pid,
-        case_at_next_screen,
-        logit1yrisk,
-        diam_cat,
-        any_growth,
-        emphysema,
-        consolidation,
-        adenopathy,
-        any_upper,
-        any_right_mid,
-        any_lingula,
-        any_mixed,
-        any_spiculation,
-        any_poor_def,
-        any_margin_unab
-           )
-
-names(bss_data)
-# Model selection decides whether variable is a main effect or interaction
-
-get_best_bic_formula <- function(form, data, yname) {
-    regsumm <-
-        summary(leaps::regsubsets(
-            x = form,
-            data = bss_data,
-            nvmax = 50,
-            method = "exhaustive"
-        ))
-    coefs <- regsumm$which[which.min(regsumm$bic), -1]
-    predictors <- names(which(coefs == TRUE)) %>%
-        str_remove("\\d$") %>%
-        unique() %>%
-        paste(collapse = "+")
-    as.formula(paste(yname, "~", predictors))
-}
-
-lcrat_ct_form <- get_best_bic_formula(
-    case_at_next_screen
-    ~ logit1yrisk * . + 1,
-    bss_data,
-    "case_at_next_screen")
-lcrat_ct_form
+lcrat_ct_form <- as.formula(
+            case_at_next_screen
+            ~ logit1yrisk
+            + longest_diam
+            # + emphysema
+            # + consolidation
+            # + adenopathy
+            + any_growth # TODO any_growth may be misleading in T0: turn into factor
+            + any_upper
+            + any_right_mid
+            + any_lingula
+            + any_mixed
+            + any_spiculation
+            + any_poor_def
+            + any_margin_unab
+)
 
 lcp_lcrat_ct_form <- update(lcrat_ct_form, ~ . + max_lcp_score)
 
 # Model setup ----
-logit_mod <- logistic_reg(mode = "classification") %>% set_engine("glm")
+logit_mod <-
+    logistic_reg(mode = "classification") %>%
+    set_engine("glm")
 
 # Refit to all data to get one model & get summary for each model
 # TODO 1. Send model summary tables for all three models (Table 1 for paper)
+
+getElement(lcp, 'fit')$aic
+
+is.recursive(getElement(lcp, 'fit'))
+lcp[['fit']][['aic']]
+# Model output functions ----
+my_glance <- function(x, ...) {
+    tibble(
+        # model_name = as_label(enquo(x)),
+        null_deviance = x$fit$null.deviance,
+        null = x$fit$df.null,
+        aic = x$fit$aic,
+        deviance = x$fit$deviance,
+        residual = x$fit$df.residual
+    )
+}
+
+
+max(data$max_lcp_score) # <- zero-inflated covariate
+hist(data$max_lcp_score) # <- zero-inflated covariate
+# TODO put in splines, try transformation of max_lcp_score
+my_augment <- function(x, ...) {
+    tibble(
+    # model_name = as_label(enquo(x)),
+    actual = x$fit$y,
+    predicted = x$fit$fitted.values,
+    residuals = x$fit$residuals,
+    )
+} 
 
 # Train models ----
     # 1. LCP
 lcp <- logit_mod %>% fit(lcp_form, data = data)
 lcp
-tidy(lcp)
-    # 2. LCRAT+CT (including nodule features) main effects & interactions
+tidy_lcp <- tidy(lcp) %>% select(variable=term, coefficient=estimate, p_value=p.value)
+
+
+    # 2. LCRAT+CT 
 lcrat_ct <- logit_mod %>% fit(lcrat_ct_form, data = data)
-lcrat_ct
-tidy(lcrat_ct)
+# lcrat_grow <- logit_mod %>% fit(lcrat_grow_form, data = data)
+# lcrat_diam <- logit_mod %>% fit(lcrat_diam_form, data = data)
+# lcrat_emph <- logit_mod %>% fit(lcrat_emph_form, data = data)
+# lcrat_cons <- logit_mod %>% fit(lcrat_cons_form, data = data)
+# lcrat_aden <- logit_mod %>% fit(lcrat_aden_form, data = data)
+# lcrat_uppr <- logit_mod %>% fit(lcrat_uppr_form, data = data)
+# lcrat_rmid <- logit_mod %>% fit(lcrat_rmid_form, data = data)
+# lcrat_ling <- logit_mod %>% fit(lcrat_ling_form, data = data)
+# lcrat_spic <- logit_mod %>% fit(lcrat_spic_form, data = data)
+# lcrat_mixd <- logit_mod %>% fit(lcrat_mixd_form, data = data)
+# lcrat_poor <- logit_mod %>% fit(lcrat_poor_form, data = data)
+# lcrat_marg <- logit_mod %>% fit(lcrat_marg_form, data = data)
+
+tidy_lcrat_ct <- tidy(lcrat_ct)
+# tidy_lcrat_grow <- tidy(lcrat_grow) %>% mutate(model = "grow")
+# tidy_lcrat_diam <- tidy(lcrat_diam) %>% mutate(model = "diam")
+# tidy_lcrat_emph <- tidy(lcrat_emph) %>% mutate(model = "emph")
+# tidy_lcrat_cons <- tidy(lcrat_cons) %>% mutate(model = "cons")
+# tidy_lcrat_aden <- tidy(lcrat_aden) %>% mutate(model = "aden")
+# tidy_lcrat_uppr <- tidy(lcrat_uppr) %>% mutate(model = "uppr")
+# tidy_lcrat_rmid <- tidy(lcrat_rmid) %>% mutate(model = "rmid")
+# tidy_lcrat_ling <- tidy(lcrat_ling) %>% mutate(model = "ling")
+# tidy_lcrat_spic <- tidy(lcrat_spic) %>% mutate(model = "spic")
+# tidy_lcrat_mixd <- tidy(lcrat_mixd) %>% mutate(model = "mixd")
+# tidy_lcrat_poor <- tidy(lcrat_poor) %>% mutate(model = "poor")
+# tidy_lcrat_marg <- tidy(lcrat_marg) %>% mutate(model = "marg")
+
+# tidy_all <- rbind(
+#     tidy_lcrat_grow,
+#     tidy_lcrat_diam,
+#     tidy_lcrat_emph,
+#     tidy_lcrat_cons,
+#     tidy_lcrat_aden,
+#     tidy_lcrat_uppr,
+#     tidy_lcrat_rmid,
+#     tidy_lcrat_ling,
+#     tidy_lcrat_spic,
+#     tidy_lcrat_mixd,
+#     tidy_lcrat_poor,
+#     tidy_lcrat_marg
+# )
+
+    # 2. LCRAT+CT diam
+lcrat_diam <- logit_mod %>% fit(lcrat_diam_form, data = data)
+lcrat_diam
+tidy_lcrat_diam <- tidy(lcrat_diam)
+    # 2. LCRAT+CT grow
+lcrat_grow <- logit_mod %>% fit(lcrat_grow_form, data = data)
+lcrat_grow
+tidy_lcrat_grow <- tidy(lcrat_grow)
     # 3. LCP+LCRAT
 lcp_lcrat <- logit_mod %>% fit(lcp_lcrat_form, data = data)
 lcp_lcrat
-tidy(lcp_lcrat)
+tidy_lcp_lcrat <- tidy(lcp_lcrat)
     # 4. LCP+LCRAT+CT (including nodule features) main effects & interactions
 lcp_lcrat_ct <- logit_mod %>% fit(lcp_lcrat_ct_form, data = data)
 lcp_lcrat_ct
-tidy(lcp_lcrat_ct)
+tidy_lcp_lcrat_ct <- tidy(lcp_lcrat_ct)
+
+# Glance ----
+mod_table <- 
+    bind_rows(
+    my_glance(lcp) %>% mutate(model = "LCP"),
+    my_glance(lcrat_ct) %>% mutate(model = "LCRAT+CT"),
+    my_glance(lcp_lcrat) %>% mutate(model = "LCP+LCRAT"),
+    my_glance(lcp_lcrat_ct) %>% mutate(model = "LCP+LCRAT+CT")
+) %>% 
+    select(model, aic, deviance, residual) %>% 
+    gt() %>%
+    tab_header(
+        title = "Models",
+    ) %>%
+    fmt_number(
+        columns = vars(aic, deviance, residual),
+        decimals = 0
+    )
+
+mod_table
+
+var_table <- 
+    bind_rows(
+    tidy(lcp) %>% mutate(model = "LCP"),
+    tidy(lcrat_ct) %>% mutate(model = "LCRAT+CT"),
+    tidy(lcp_lcrat) %>% mutate(model = "LCP+LCRAT"),
+    tidy(lcp_lcrat_ct) %>% mutate(model = "LCP+LCRAT+CT")
+) %>% 
+    select(model, variable = term, coefficient = estimate, standard_error = std.error, p_value = p.value) %>% 
+    gt() %>%
+    tab_header(
+        title = "Variables",
+    ) %>%
+    fmt_number(
+        columns = vars(coefficient, standard_error, p_value),
+        decimals = 3
+    )
+
+var_table
+remotes::install_github("rstudio/gt")
+
+
 
 # Predict ----
     # 1. LCP
@@ -124,10 +459,17 @@ true_pred %>% glimpse()
 # Plot ----
 
 options(yardstick.event_first = FALSE)
-gain_curve(true_pred, truth = truth, lcp) %>% autoplot()
-gain_curve(true_pred, truth = truth, lcrat_ct) %>% autoplot()
-gain_curve(true_pred, truth = truth, lcp_lcrat) %>% autoplot()
-gain_curve(true_pred, truth = truth, lcp_lcrat_ct) %>% autoplot()
+lcp_gain <- 
+    gain_curve(true_pred, truth = truth, lcp) %>%
+        mutate(model = "lcp_lcrat")
+lcrat_gain <- 
+    gain_curve(true_pred, truth = truth, lcrat_ct) %>%
+        mutate(model = "lcp_lcrat")
+lcrat_gain <- 
+    gain_curve(true_pred, truth = truth, lcp_lcrat) %>%
+        mutate(model = "lcp_lcrat")
+gain_curve(true_pred, truth = truth, lcp_lcrat_ct) %>%
+    mutate(model = "lcp_lcrat")
 
 # Cross-validation ----
 ctrl <- control_resamples(save_pred = TRUE)
