@@ -8,6 +8,8 @@ library(rsample)
 library(broom)
 library(recipes)
 library(parsnip)
+library(gt)
+#remotes::install_github("rstudio/gt")
 # remotes::install_github("tidymodels/tune")
 library(tune)
 library(yardstick)
@@ -291,10 +293,6 @@ logit_mod <-
 # Refit to all data to get one model & get summary for each model
 # TODO 1. Send model summary tables for all three models (Table 1 for paper)
 
-getElement(lcp, 'fit')$aic
-
-is.recursive(getElement(lcp, 'fit'))
-lcp[['fit']][['aic']]
 # Model output functions ----
 my_glance <- function(x, ...) {
     tibble(
@@ -307,9 +305,6 @@ my_glance <- function(x, ...) {
     )
 }
 
-
-max(data$max_lcp_score) # <- zero-inflated covariate
-hist(data$max_lcp_score) # <- zero-inflated covariate
 # TODO put in splines, try transformation of max_lcp_score
 my_augment <- function(x, ...) {
     tibble(
@@ -387,25 +382,43 @@ tidy_lcp_lcrat <- tidy(lcp_lcrat)
 lcp_lcrat_ct <- logit_mod %>% fit(lcp_lcrat_ct_form, data = data)
 lcp_lcrat_ct
 tidy_lcp_lcrat_ct <- tidy(lcp_lcrat_ct)
+lcp$fit
 
+pvals <- anova(lcp$fit, lcp_lcrat$fit, lcp_lcrat_ct$fit, test = "LRT")[5][[1]][2:3]
+pvals <- c(NA, NA, pvals)
+
+glance(lcp$fit)
 # Glance ----
 mod_table <- 
     bind_rows(
-    my_glance(lcp) %>% mutate(model = "LCP"),
-    my_glance(lcrat_ct) %>% mutate(model = "LCRAT+CT"),
-    my_glance(lcp_lcrat) %>% mutate(model = "LCP+LCRAT"),
-    my_glance(lcp_lcrat_ct) %>% mutate(model = "LCP+LCRAT+CT")
+    glance(lcrat_ct$fit) %>% mutate(model = "LCRAT+CT"),
+    glance(lcp$fit) %>% mutate(model = "LCP"),
+    glance(lcp_lcrat$fit) %>% mutate(model = "LCP+LCRAT"),
+    glance(lcp_lcrat_ct$fit) %>% mutate(model = "LCP+LCRAT+CT")
 ) %>% 
-    select(model, aic, deviance, residual) %>% 
+    select(model, AIC, BIC, deviance, logLik) %>%
+    mutate(lrt_p_value = pvals) %>% 
     gt() %>%
     tab_header(
-        title = "Models",
+        title = "Nested Models"
     ) %>%
     fmt_number(
-        columns = vars(aic, deviance, residual),
+        columns = vars(AIC, BIC, deviance, logLik),
         decimals = 0
+    ) %>% 
+    fmt_scientific(
+        columns = vars(lrt_p_value),
+    ) %>% 
+    fmt_missing(
+        columns = vars(lrt_p_value),
+        missing_text = ""
+    ) %>%
+    gt::cols_label(
+        model="Model",
+        deviance="Deviance",
+        logLik="Log Likelihood",
+        lrt_p_value="LRT p-value"
     )
-
 mod_table
 
 var_table <- 
