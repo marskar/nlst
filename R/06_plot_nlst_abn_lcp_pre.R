@@ -396,14 +396,14 @@ mod_table <-
     glance(lcp_lcrat$fit) %>% mutate(model = "LCP+LCRAT"),
     glance(lcp_lcrat_ct$fit) %>% mutate(model = "LCP+LCRAT+CT")
 ) %>% 
-    select(model, AIC, BIC, deviance, logLik) %>%
+    select(model, AIC, deviance) %>%
     mutate(lrt_p_value = pvals) %>% 
     gt() %>%
     tab_header(
         title = "Nested Models"
     ) %>%
     fmt_number(
-        columns = vars(AIC, BIC, deviance, logLik),
+        columns = vars(AIC, deviance),
         decimals = 0
     ) %>% 
     fmt_scientific(
@@ -416,11 +416,13 @@ mod_table <-
     gt::cols_label(
         model="Model",
         deviance="Deviance",
-        logLik="Log Likelihood",
         lrt_p_value="LRT p-value"
     )
 mod_table
 
+obs_table <- augment(lcp$fit) 
+tidy(lcp)
+tidy(lcp$fit)
 var_table <- 
     bind_rows(
     tidy(lcp) %>% mutate(model = "LCP"),
@@ -433,14 +435,26 @@ var_table <-
     tab_header(
         title = "Variables",
     ) %>%
+    fmt_scientific(
+        columns = vars(p_value),
+    ) %>% 
     fmt_number(
-        columns = vars(coefficient, standard_error, p_value),
+        columns = vars(coefficient, standard_error),
         decimals = 3
+    ) %>%
+    gt::cols_label(
+        model="Model",
+        variable="Variable",
+        coefficient="Coefficient",
+        standard_error="Standard Error",
+        p_value="p-value"
     )
 
 var_table
 remotes::install_github("rstudio/gt")
 
+augment(lcp$fit)
+my_augment(lcp)
 
 
 # Predict ----
