@@ -311,7 +311,6 @@ my_augment <- function(x, ...) {
     # model_name = as_label(enquo(x)),
     actual = x$fit$y,
     predicted = x$fit$fitted.values,
-    residuals = x$fit$residuals,
     )
 } 
 
@@ -420,9 +419,6 @@ mod_table <-
     )
 mod_table
 
-obs_table <- augment(lcp$fit) 
-tidy(lcp)
-tidy(lcp$fit)
 var_table <- 
     bind_rows(
     tidy(lcp) %>% mutate(model = "LCP"),
@@ -453,9 +449,61 @@ var_table <-
 var_table
 remotes::install_github("rstudio/gt")
 
-augment(lcp$fit)
-my_augment(lcp)
+# TODO add AUC to model table
+mod_table
 
+max(my_augment(lcp)$predicted)
+min(my_augment(lcp)$predicted)
+hist(my_augment(lcp)$predicted)
+# TODO make risk table as in https://academic.oup.com/jnci/article/111/9/996/5445482 first 3 columns only:
+# columns 2 and 3 should absolute numbers and precentages 
+
+install.packages("plotly")
+library(plotly)
+tail(lor_lcp)
+lor_lcp <- 
+    my_augment(lcp) %>% 
+    arrange(desc(predicted)) %>% 
+    mutate(proportion_of_n = row_number() / n()) %>%
+    mutate(proportion_of_y = cumsum(actual) / sum(actual)) %>%
+    mutate(model = "lcp")
+
+sum(data$case_at_next_screen)
+lor_lcrat_ct <- 
+    my_augment(lcrat_ct) %>% 
+    arrange(desc(predicted)) %>% 
+    mutate(proportion_of_n = row_number() / n()) %>%
+    mutate(proportion_of_y = cumsum(actual) / sum(actual)) %>%
+    mutate(model = "lcrat_ct")
+    
+lor_lcp_lcrat <- 
+    my_augment(lcp_lcrat) %>% 
+    arrange(desc(predicted)) %>% 
+    mutate(proportion_of_n = row_number() / n()) %>%
+    mutate(proportion_of_y = cumsum(actual) / sum(actual)) %>%
+    mutate(model = "lcp_lcrat")
+
+lor_lcp_lcrat_ct <- 
+    my_augment(lcp_lcrat_ct) %>% 
+    arrange(desc(predicted)) %>% 
+    mutate(proportion_of_n = row_number() / n()) %>%
+    mutate(proportion_of_y = cumsum(actual) / sum(actual)) %>%
+    mutate(model = "lcp_lcrat_ct")
+
+all_lor <- bind_rows(lor_lcrat_ct, lor_lcp, lor_lcp_lcrat, lor_lcp_lcrat_ct)
+all_lor %>% 
+    ggplot() +
+    aes(x=proportion_of_n, y = proportion_of_y, color = model) +
+    geom_line(size = 1.2) +
+    geom_segment(x = 0, xend = 1,
+                 y = 0, yend =1,
+                 linetype="dashed",
+                 color="black") 
+    # xlab("Proportion of participants in annual versus biennial screening") +
+    # ylab("Sensitivity (Recall)") %>% 
+    ggplotly(ggplot2::last_plot())
+
+ggsave("lorenz.png")
 
 # Predict ----
     # 1. LCP
@@ -584,18 +632,6 @@ lcrat_pred %>% glimpse()
 all_pred <- bind_rows(lcp_pred, lcrat_pred, lcp_lcrat_pred)
 all_pred %>% glimpse()
 
-all_pred %>% 
-    ggplot() +
-    aes(x=min_max_pred, y = sensitivity, color = model) +
-    geom_line(size = 1.2) +
-    geom_segment(x = 0, xend = 1,
-                 y = 0, yend =1,
-                 linetype="dashed",
-                 color="black") +
-    xlab("Proportion of participants in annual versus biennial screening") +
-    ylab("Sensitivity (Recall)")
-
-ggsave("lorenz.png")
 
 # ROC curve ----
 
