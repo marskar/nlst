@@ -183,7 +183,23 @@ var_table
 # TODO make risk table as in https://academic.oup.com/jnci/article/111/9/996/5445482 first 3 columns only:
 # columns 2 and 3 should absolute numbers and precentages
 # get value of x and y at each threshold
-# risk_table <- model_metrics
+risk_table <- model_metrics
+
+get_risk_table <- function (x, threshold) {
+    my_augment(x) %>%
+        group_by() %>%
+        summarise(
+            threshold = threshold,
+            x_absolute = sum(predicted > threshold),
+            x_percent = x_absolute / n() * 100,
+            y_absolute = sum(actual[predicted > threshold]),
+            y_percent = y_absolute / n() * 100
+        )
+}
+
+get_risk_table(lcp, 0.05)
+
+thresholds = c(.01, .02, .4, .8, 1.2)
 
 # Model metrics ----
 get_model_metrics <- function (x) {
