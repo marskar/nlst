@@ -190,16 +190,17 @@ get_risk_table <- function (x, threshold) {
         group_by() %>%
         summarise(
             threshold = threshold,
-            x_absolute = sum(predicted > threshold),
+            x_absolute = sum(predicted < threshold),
             x_percent = x_absolute / n() * 100,
-            y_absolute = sum(actual[predicted > threshold]),
-            y_percent = y_absolute / n() * 100
+            y_absolute = sum(actual[predicted < threshold]),
+            y_percent = y_absolute / sum(actual) * 100
         )
 }
 
-get_risk_table(lcp, 0.05)
-
-thresholds = c(.01, .02, .4, .8, 1.2)
+thresholds = c(0.00421, 0.005, .01, .02, .04, .08, .12)
+max(lcp$fit$fitted.values)
+lcp_risk_table <- map_dfr(thresholds, get_risk_table, x = lcp)
+lcp_risk_table 
 
 # Model metrics ----
 get_model_metrics <- function (x) {
