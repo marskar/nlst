@@ -27,8 +27,42 @@ data <-
            any_growth = as.factor(any_growth)) %>%
     filter(is.finite(longest_diam))
 
-# Formulas ----
+# Model output functions ----
+my_glance <- function(x, ...) {
+    tibble(
+        # model_name = as_label(enquo(x)),
+        null_deviance = x$fit$null.deviance,
+        null = x$fit$df.null,
+        aic = x$fit$aic,
+        deviance = x$fit$deviance,
+        residual = x$fit$df.residual
+    )
+}
 
+# TODO put in splines, try transformation of max_lcp_score
+my_augment <- function(x, ...) {
+    tibble(
+    model_name = as_label(enquo(x)),
+    actual = x$fit$y,
+    predicted = x$fit$fitted.values,
+    )
+}
+
+options(yardstick.event_first = FALSE)
+get_model_table <- function (x) {
+    model_name <- quo_name(enquo(x))
+    glance(x$fit) %>%
+        mutate(model = model_name,
+               auroc = roc_auc_vec(as.factor(x$fit$y),
+                                 x$fit$fitted.values),
+               auprc = pr_auc_vec(as.factor(x$fit$y),
+                                  x$fit$fitted.values),
+               gain_cap = gain_capture_vec(as.factor(x$fit$y),
+                                           x$fit$fitted.values)
+               )
+}
+
+# Formulas ----
 lcp_form <- as.formula(case_at_next_screen ~ max_lcp_score)
 
 lcp_lcrat_form <- as.formula(case_at_next_screen ~ max_lcp_score + logit1yrisk)
@@ -52,114 +86,43 @@ lcrat_ct_form <- as.formula(
 
 lcp_lcrat_ct_form <- update(lcrat_ct_form, ~ . + max_lcp_score)
 
+# Refit to all data to get one model & get summary for each model
+# TODO 1. Send model summary tables for all three models (Table 1 for paper)
+
 # Model setup ----
 logit_mod <-
     logistic_reg(mode = "classification") %>%
     set_engine("glm")
 
-# Refit to all data to get one model & get summary for each model
-# TODO 1. Send model summary tables for all three models (Table 1 for paper)
-
-# Model output functions ----
-my_glance <- function(x, ...) {
-    tibble(
-        # model_name = as_label(enquo(x)),
-        null_deviance = x$fit$null.deviance,
-        null = x$fit$df.null,
-        aic = x$fit$aic,
-        deviance = x$fit$deviance,
-        residual = x$fit$df.residual
-    )
-}
-
-# TODO put in splines, try transformation of max_lcp_score
-my_augment <- function(x, ...) {
-    tibble(
-    model_name = as_label(enquo(x)),
-    actual = x$fit$y,
-    predicted = x$fit$fitted.values,
-    )
-}
-
 # Train models ----
 # 1. LCP
 lcp <- logit_mod %>% fit(lcp_form, data = data)
-lcp
-tidy_lcp <- tidy(lcp) %>% select(variable=term, coefficient=estimate, p_value=p.value)
 # 2. LCRAT+CT
 lcrat_ct <- logit_mod %>% fit(lcrat_ct_form, data = data)
-tidy_lcrat_ct <- tidy(lcrat_ct)
 # 3. LCP+LCRAT
 lcp_lcrat <- logit_mod %>% fit(lcp_lcrat_form, data = data)
-lcp_lcrat
-tidy_lcp_lcrat <- tidy(lcp_lcrat)
 # 4. LCP+LCRAT+CT (including nodule features) main effects & interactions
 lcp_lcrat_ct <- logit_mod %>% fit(lcp_lcrat_ct_form, data = data)
-lcp_lcrat_ct
-tidy_lcp_lcrat_ct <- tidy(lcp_lcrat_ct)
 
+# LRT p-values ----
 pvals <- anova(lcp$fit, lcp_lcrat$fit, lcp_lcrat_ct$fit, test = "LRT")[5][[1]][2:3]
 pvals <- c(NA, NA, pvals)
 
 # Model table ----
-# TODO add AUC to model table
-get_model_table <- function (x) {
-    model_name <- quo_name(enquo(x))
-    glance(x$fit) %>%
-        mutate(model = model_name,
-               auc = roc_auc_vec(as.factor(x$fit$y),
-                                 x$fit$fitted.values)
-               )
-}
-
-test <- function (x) {
-    quo_name(enquo(x))
-}
-
-test(lcp)
-
-models <- c(lcrat_ct, lcp, lcp_lcrat, lcp_lcrat_ct)
-fits <- c(lcrat_ct$fit, lcp$fit, lcp_lcrat$fit, lcp_lcrat_ct$fit)
-
 mod_table <-
     bind_rows(
     get_model_table(lcrat_ct),
     get_model_table(lcp),
     get_model_table(lcp_lcrat),
     get_model_table(lcp_lcrat_ct)
-    )
-
-mod_table
-
-head(data)
-
-my_augment(lcp_lcrat_ct$fit)
-
-        glance(lcrat_ct$fit) %>%
-            mutate(model = "LCRAT+CT",
-                   auc = roc_auc(my_augment(lcp_lcrat_ct),
-                                 truth = as.factor(actual),
-                                 predicted)[[3]]),
-        glance(lcp$fit) %>%
-            mutate(model = "LCP",
-                   auc = roc_auc(my_augment(lcp_lcrat_ct),
-                                 truth = as.factor(actual),
-                                 predicted)[[3]]),
-        glance(lcp_lcrat$fit) %>%
-            mutate(model = "LCP+LCRAT",
-                   auc = roc_auc(my_augment(lcp_lcrat_ct),
-                                 truth = as.factor(actual),
-                                 predicted)[[3]]),
-        glance(lcp_lcrat_ct$fit) %>%
-            mutate(model = "LCP+LCRAT+CT",
-                   auc = roc_auc(my_augment(lcp_lcrat_ct),
-                                 truth = as.factor(actual),
-                                 predicted)[[3]])
-) %>%
-select(model, AIC, auc, deviance) %>%
+    ) %>%
+select(model, AIC, auroc, gain_cap, deviance) %>%
     mutate(lrt_p_value = pvals) %>%
     identity()
 
+mod_table
+
+mod_table %>%
     gt() %>%
     tab_header(
         title = "Nested Models"
@@ -190,7 +153,11 @@ var_table <-
     tidy(lcp_lcrat) %>% mutate(model = "LCP+LCRAT"),
     tidy(lcp_lcrat_ct) %>% mutate(model = "LCP+LCRAT+CT")
 ) %>%
-    select(model, variable = term, coefficient = estimate, standard_error = std.error, p_value = p.value) %>%
+    select(model,
+           variable = term,
+           coefficient = estimate,
+           standard_error = std.error,
+           p_value = p.value) %>%
     gt() %>%
     tab_header(
         title = "Variables",
@@ -212,12 +179,15 @@ var_table <-
 
 var_table
 
+# Risk table ----
 # TODO make risk table as in https://academic.oup.com/jnci/article/111/9/996/5445482 first 3 columns only:
 # columns 2 and 3 should absolute numbers and precentages
+# get value of x and y at each threshold
+# risk_table <- model_metrics
 
-tail(lor_lcp)
-lor_lcp <-
-    my_augment(lcp) %>%
+# Model metrics ----
+get_model_metrics <- function (x) {
+    my_augment(x) %>%
     arrange(desc(predicted)) %>%
     # recall (sensitivity)
     mutate(true_positives = cumsum(actual)) %>%
@@ -230,44 +200,169 @@ lor_lcp <-
     mutate(false_positives = predicted_positives - true_positives) %>%
     mutate(negatives = n() - positives) %>%
     mutate(fallout = false_positives / negatives) %>%
-    mutate(model = "lcp")
+    # Lorenz (gain curve)
+    mutate(proportion_predicted_positive = predicted_positives / n())
+}
 
-sum(data$case_at_next_screen)
-lor_lcrat_ct <-
-    my_augment(lcrat_ct) %>% 
-    arrange(desc(predicted)) %>% 
-    mutate(proportion_of_n = row_number() / n()) %>%
-    mutate(proportion_of_y = cumsum(actual) / sum(actual)) %>%
-    mutate(model = "lcrat_ct")
-    
-lor_lcp_lcrat <- 
-    my_augment(lcp_lcrat) %>% 
-    arrange(desc(predicted)) %>% 
-    mutate(proportion_of_n = row_number() / n()) %>%
-    mutate(proportion_of_y = cumsum(actual) / sum(actual)) %>%
-    mutate(model = "lcp_lcrat")
+model_metrics <-
+    bind_rows(
+    get_model_metrics(lcrat_ct) %>% mutate(model = "lcrat_ct"),
+    get_model_metrics(lcp) %>% mutate(model = "lcp"),
+    get_model_metrics(lcp_lcrat) %>% mutate(model = "lcp_lcrat"),
+    get_model_metrics(lcp_lcrat_ct) %>% mutate(model = "lcp_lcrat_ct")
+)
 
-lor_lcp_lcrat_ct <- 
-    my_augment(lcp_lcrat_ct) %>% 
-    arrange(desc(predicted)) %>% 
-    mutate(proportion_of_n = row_number() / n()) %>%
-    mutate(proportion_of_y = cumsum(actual) / sum(actual)) %>%
-    mutate(model = "lcp_lcrat_ct")
+# ROC ----
+get_roc_curve <- function(x) {
+    model_name <- quo_name(enquo(x))
+    tibble(truth=as.factor(x$fit$y),
+           estimate=x$fit$fitted.values) %>%
+    roc_curve(truth, estimate) %>%
+    mutate(model = model_name)
+}
 
-all_lor <- bind_rows(lor_lcrat_ct, lor_lcp, lor_lcp_lcrat, lor_lcp_lcrat_ct)
-all_lor %>% 
+rocs <- bind_rows(
+    get_roc_curve(lcrat_ct),
+    get_roc_curve(lcp),
+    get_roc_curve(lcp_lcrat),
+    get_roc_curve(lcp_lcrat_ct)
+)
+
+# PR ----
+get_pr_curve <- function(x) {
+    model_name <- quo_name(enquo(x))
+    tibble(truth=as.factor(x$fit$y),
+           estimate=x$fit$fitted.values) %>%
+    pr_curve(truth, estimate) %>%
+    mutate(model = model_name)
+}
+
+prs <- bind_rows(
+    get_pr_curve(lcrat_ct),
+    get_pr_curve(lcp),
+    get_pr_curve(lcp_lcrat),
+    get_pr_curve(lcp_lcrat_ct)
+)
+
+# Gain curve ----
+get_gain_curve <- function(x) {
+    model_name <- quo_name(enquo(x))
+    tibble(truth=as.factor(x$fit$y),
+           estimate=x$fit$fitted.values) %>%
+    gain_curve(truth, estimate) %>%
+    mutate(model = model_name)
+}
+
+gains <- bind_rows(
+    get_gain_curve(lcrat_ct),
+    get_gain_curve(lcp),
+    get_gain_curve(lcp_lcrat),
+    get_gain_curve(lcp_lcrat_ct)
+)
+
+# Plots ----
+# Lorenz plot (gain curve) ----
+model_metrics %>%
     ggplot() +
-    aes(x=proportion_of_n, y = proportion_of_y, color = model) +
+    aes(x = proportion_predicted_positive,
+        y = recall,
+        color = model) +
     geom_line(size = 1.2) +
     geom_segment(x = 0, xend = 1,
                  y = 0, yend =1,
                  linetype="dashed",
-                 color="black") 
-    # xlab("Proportion of participants in annual versus biennial screening") +
-    # ylab("Sensitivity (Recall)") %>% 
-    ggplotly(ggplot2::last_plot())
+                 color="black") +
+    xlab("Proportion of participants in annual versus biennial screening") +
+    ylab("Sensitivity (Recall)") +
+    ggtitle("Lorenz Plot (Gain curve)") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    NULL
+    # ggplotly(ggplot2::last_plot())
 
-ggsave("lorenz.png")
+# ggsave("lorenz.png")
+gains %>%
+    ggplot() +
+    aes(x = .percent_tested,
+        y = .percent_found,
+        color = model) +
+    geom_line(size = 1.2) +
+    geom_segment(x = 0, xend = 1,
+                 y = 0, yend =1,
+                 linetype="dashed",
+                 color="black") +
+    xlab("Proportion of participants in annual versus biennial screening") +
+    ylab("Sensitivity (Recall)") +
+    ggtitle("Lorenz Plot (Gain curve)") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    NULL
+
+# ROC curve (TPR versus FPR) ----
+model_metrics %>%
+    ggplot() +
+    aes(x = fallout,
+        y = recall,
+        color = model) +
+    geom_line(size = 1.2) +
+    geom_segment(x = 0, xend = 1,
+                 y = 0, yend =1,
+                 linetype="dashed",
+                 color="black") +
+    xlab("Fall-out (1 - Specificity)") +
+    ylab("Sensitivity (Recall)") +
+    ggtitle("ROC curve (Fall-out versus Recall)") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    NULL
+
+    # ggplotly(ggplot2::last_plot())
+
+rocs %>%
+    ggplot() +
+    aes(x = 1 - specificity,
+        y = sensitivity,
+        color = model) +
+    geom_line(size = 1.2) +
+    geom_segment(x = 0, xend = 1,
+                 y = 0, yend =1,
+                 linetype="dashed",
+                 color="black") +
+    xlab("Fall-out (1 - Specificity)") +
+    ylab("Sensitivity (Recall)") +
+    ggtitle("ROC curve (Fall-out versus Recall)") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    NULL
+
+# PR curve (Precision versus Recall) ----
+model_metrics %>%
+    ggplot() +
+    aes(x = recall,
+        y = precision,
+        color = model) +
+    geom_line(size = 1.2) +
+    geom_segment(x = 0, xend = 1,
+                 y = 0, yend =1,
+                 linetype="dashed",
+                 color="black") +
+    xlab("Sensitivity (Recall)") +
+    ylab("Precision (PPV)") +
+    ggtitle("PR curve (Precision versus Recall)") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    NULL
+
+prs %>%
+    ggplot() +
+    aes(x = recall,
+        y = precision,
+        color = model) +
+    geom_line(size = 1.2) +
+    geom_segment(x = 0, xend = 1,
+                 y = 0, yend =1,
+                 linetype="dashed",
+                 color="black") +
+    xlab("Sensitivity (Recall)") +
+    ylab("Precision (PPV)") +
+    ggtitle("PR curve (Precision versus Recall)") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    NULL
 
 # Predict ----
     # 1. LCP
