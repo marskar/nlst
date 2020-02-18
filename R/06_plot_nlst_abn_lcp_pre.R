@@ -158,6 +158,8 @@ var_table <-
            coefficient = estimate,
            standard_error = std.error,
            p_value = p.value) %>%
+    identity()
+
     gt() %>%
     tab_header(
         title = "Variables",
@@ -198,7 +200,7 @@ get_risk_table <- function (x, threshold) {
 }
 
 thresholds = c(0.00421, 0.005, .01, .02, .04, .08, .12)
-max(lcp$fit$fitted.values)
+
 lcp_risk_table <- map_dfr(thresholds, get_risk_table, x = lcp)
 lcp_risk_table 
 
@@ -276,7 +278,7 @@ gains <- bind_rows(
     get_gain_curve(lcp_lcrat),
     get_gain_curve(lcp_lcrat_ct)
 )
-
+model_metrics %>% select(fallout, proportion_predicted_positive)
 # Plots ----
 # Lorenz plot (gain curve) ----
 model_metrics %>%
@@ -294,6 +296,7 @@ model_metrics %>%
     ggtitle("Lorenz Plot (Gain curve)") +
     theme(plot.title = element_text(hjust = 0.5)) +
     NULL
+ggsave("lorenz.png")
     # ggplotly(ggplot2::last_plot())
 
 # ggsave("lorenz.png")
@@ -312,6 +315,7 @@ gains %>%
     ggtitle("Lorenz Plot (Gain curve)") +
     theme(plot.title = element_text(hjust = 0.5)) +
     NULL
+# ggsave("lorenz.png")
 
 # ROC curve (TPR versus FPR) ----
 model_metrics %>%
@@ -329,6 +333,7 @@ model_metrics %>%
     ggtitle("ROC curve (Fall-out versus Recall)") +
     theme(plot.title = element_text(hjust = 0.5)) +
     NULL
+ggsave("roc.png")
 
     # ggplotly(ggplot2::last_plot())
 
