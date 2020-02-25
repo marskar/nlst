@@ -7,67 +7,24 @@ bibliography: bibliography.bib
 csl: journal-of-the-national-cancer-institute.csl
 ---
 
-Lung nodule features extracted from data using Lower in lung cancer screens augments prescreening risk
-
-Lorenz plot
-x - percentage of participants from lowest to highest risk (one curve for each method)
-y - percentage of detectable next-screen lung cancers identified
-add a column with predicted risk for each method
-sort on a predicted risk column
-
-false-positives avoided
-abc
 
 Introduction {#introduction .unnumbered}
-============
+========================================
 
-According to the Global Initiative for Chronic Obstructive Lung Disease
-(GOLD), chronic obstructive pulmonary disease (COPD) is a disease
-characterized by persistent respiratory symptoms and airflow limitation
-caused by a mixture of small airways disease (bronchiolitis) and
-parenchymal destruction (emphysema)[@gold19]. COPD is projected to be
-the third leading cause of death by 2020 so improved methods for
-diagnosis are going to be critical in the coming years. Furthermore, the
-primary modality for diagnosis of emphysema is chest CT scan, so there
-is substantial potential for quantitative analysis of emphysema.
-
-Quantitative Analysis of Emphysema {#quantitative-analysis-of-emphysema .unnumbered}
-----------------------------------
-
-The current state of the art method for performing quantitative analysis
-of emphysema is the Density Mask technique[@msma88]. Density Mask
-measures the percentage of voxels in the lung below a certain density
-threshold, and if this percentage is above a preset threshold then the
-patient is considered emphysematous. This technique has shown to be very
-effective when used consistently on the same scanner where the threshold
-can be tailored to that scanner and reconstruction kernel; however,
-Density Mask suffers greatly when the CT scans are taken from a more
-diverse data set as in the case of the NLST (National Lung Screening Trial)[@Gierada10]. The CT scans from the NLST come from 33 sites across the US and 23 different scanner
-models reconstructed using 44 different reconstruction kernels[@nlst11].
-Therefore, it is paramount to develop quantitative methods that are much
-more robust in the face of ever-growing datasets.
-
-How well does Density Mask work?
-Compare to our neural net.
-
-Parameters:
-- KPB (kilovolts ...)
-- MAS (milliamperes)
-
-In order to quantitatively analyze emphysema in a more robust manner, we
-use as our model a three dimensional convolutional neural network (3D
-CNN). Our 3D CNN utilizes multiple layers of convolutions to detect and
-weight features at all scales throughout the lung image. This does have
-the downside of requiring significantly more computational power, but
-most of this is required during training and not during deployment.
-
-Lung Cancer Risk Prediction {#lung-cancer-risk-prediction .unnumbered}
----------------------------
-
-Cite Hilary’s Markov paper and give a basic explanation here
+We used an AI developed for discrimination of malignant and benign
+nodules, to see whether it could improve a clinical model for the
+prediction of a screening patient's likelihood of developing cancer over
+the upcoming year. The existing model used a number of features
+extracted from the metadata of the US National Lung Screening Trial
+(NLST) to produce a likelihood score, given a screening output in year
+*y*, of developing cancer before the corresponding screening image taken
+at year *(y+1)*. These features included both patient clinical data
+(age, smoking history etc), and quantities extracted from a radiological
+read of the screening CT, such as maximal nodule size, the existence of
+any GGO nodules on the CT, and presence of emphysema within the patient.
 
 Methods {#methods .unnumbered}
-=======
+==============================
 
 The chest CT scans used in this study were taken from the all three
 years of the NLST from both the LSS branch and the ACRIN branch; 8416
@@ -75,127 +32,107 @@ patients were used for training, 480 for validation, and 2016 for
 testing. Each CT scan was labeled by radiologists at the site of the
 screening for lung CT abnormalities.
 
-The scans were first converted to NifTI-1 format, then cropped to a
-bounding box around the lung using the Progressive Holistically-Nested
-Network (P-HNN) lung segmenter[@phnn17], normalized in three different
-lung windows of -1000, 200, -160, 240, and -1000, -775, and
-rescaled to a standard size of 128x128x128. These lung windows were
-chosen due to their use in the P-HNN segmenter[@phnn17]. The resulting
-3-channel image was then fed into a standard 3D convolutional neural
-network. The network consisted of five 4-layer blocks of 3x3x3
-convolution, batch normalization, ReLU activation, and 3D max pooling;
-then a convolution group of 2x2x2 convolution, batch normalization, ReLU
-activation, and 50% dropout before a fully connected group of 1x1x1
-convolution, 50% dropout, 1x1x1 convolution, 50% dropout, a flattening
-layer, and a dense layer with 2 class outputs. In order to compensate
-for the asymmetry of the labels (there were many more non-emphysematous
-cases than emphysematous cases), positive labels were weighted 3 times
-as much as negative labels in the training process.
+A re-curated version of the NLST dataset CTs and metadata was used for
+this study. Each CT listed as containing at least one nodule was
+reviewed by a medical doctor or medical student, under expert
+supervision from University of Oxford Radiologists, and metadata records
+of the CT findings were reviewed and extended. In particular, the size,
+extent, location, margins and attenuation of each nodule were reviewed
+by the same small team of individuals, and the exact 3D location of each
+nodule was identified and recorded. Additional nodules not listed in the
 
-Three neural networks were trained for this experiment. One for just T0
-scans, another for T0 and T1 scans, and a final model for all T0, T1,
-and T2 scans. Each neural network was trained concurrently on 4 NVIDIA
-Titan X graphics cards using Python 2.7 and Keras bindings for
-Tensorflow[@keras15]. The majority of the time spent training the model
-was spent preprocessing the CT images into the format necessary for our
-model.
+NLST metadata were also added as long as they were not fully calcified
+(since fully calcified nodules were not considered "positive findings"
+in the original NLST data). As well as reviewing all CTs on which one or
+more nodules was recorded, the team also reviewed all CTs of patients
+recorded as having developed lung cancer, and again fully reviewed and
+extended their mark-up and metadata. Patients who never had any reported
+nodules and also never had lung cancer were not considered or marked up.
+
+An AI called the LCP-CNN (Lung Cancer Prediction Convolutional Neural Network)
+was trained on this augmented NLST set in an 8-fold cross-validated way using
+Tensorflow @keras15. The AI training is outside the scope of this publication,
+but for reference, the training used class balancing, and also extensive
+pre-training on hundreds of thousands of non-NLST images in order to achieve
+strong performance both on the testing folds of the cross-validation, and also
+on several independent external datasets.
+
+The AI was trained for the task of malignant vs benign classification,
+and produces a score where 0 indicates benignity, and 100 indicates
+malignancy.
+
+The set of features extracted from the NLST metadata and the re-curated
+CT information represents the full space of information available to our
+new model.
+
+\[Table of each feature under consideration for the screening models.
+Detail which features are derived from where. LP or ND will use this
+list to produce the up-to-date release of Optellum's nodule data and
+metadata for use in this project\].
+
+The new model we are fitting is an extension of \<background description
+of Hilary's work\>. The particular form of the model being fitted is
+\<equations\>.
+
+Two versions of the model were fitted using the feature set described
+above. In the first, the maximum LCP score for a given CT was *not*
+available as a feature, and in the second, it was available for
+selection. In both cases, feature selection was done using \[Bayes
+Information Criterion or Lasso\].
+
+
+The two (or four?) models were then compared according to \<TBD the
+necessary but sufficient statistical tests\>, showing that in both cases
+the addition of the LCP-CNN gave a better fit to data.
 
 Results {#results .unnumbered}
-=======
+==============================
 
-As a classifier, the network had moderate success. After 26 epochs of
-training, the T0 model had a classification AUC of 0.673; after 20
-epochs of training, the T1 model had a classification AUC of 0.689; and
-after 24 epochs of training, the T2 model had a classification AUC of
-0.684. The confusion matrices for each model are displayed below.
-
-T0 model:
-
-  -- ---------- ---------- ---- ------
-                                
-     Negative    Positive       
-     Negative      1221     39   1260
-     Positive      657      99   756
-                                
-  -- ---------- ---------- ---- ------
-
-T1 model:
-
-  -- ---------- ---------- ----- ------
-                                 
-     Negative    Positive        
-     Negative      1828     579   2407
-     Positive      797      844   1641
-                                 
-  -- ---------- ---------- ----- ------
-
-T2 model:
-
-  -- ---------- ---------- ------ ------
-                                  
-     Negative    Positive         
-     Negative      2797     757    3554
-     Positive      1343     1167   2510
-                                  
-  -- ---------- ---------- ------ ------
+We should defer writing up any results until we've reached consensus
+with everything above.
+most of this is required during training and not during deployment.
 
 Discussion {#discussion .unnumbered}
 ==========
 
-The results presented here show that 3D CNN-based approaches are a
-promising direction of research for computer-aided diagnosis of
-emphysema. As well as just diagnosing emphysema, neural networks could
-identify multiple CT-diagnosed diseases to identify risk factors for
-lung cancer, or even identify lung cancer risk directly.
-
-Conclusions {#conclusions .unnumbered}
-===========
-
-While not accurate enough to be used in a clinical environment, this
-shows that there is value in working directly with CT data instead of
-just in derived values. Furthermore, the neural network approach is
-significantly more robust than the density mask approach, even with a
+The results presented here show that 3D CNN-based approaches are a promising
+direction of research for computer-aided prediction of a future cancer
+diagnosis. As well as just diagnosing cancer, neural networks could identify
+multiple CT-diagnosed diseases to identify risk factors for lung cancer, or
+even identify lung cancer risk directly.
+Furthermore, the neural network may be useful as significantly more robust than the density mask approach, even with a
 very basic network.
 
 Tables {#tables .unnumbered}
 ======
 
-Table 1: Demographics of random sample of CT scan recipients (familiar for epidemiologists)
-- training
-- validation
-- testing
+Table 1: Model Table
 
-Table 2: Markov model summary (familiar for epidemiologists)
+Table 2: Variable Table
 
 Figures
 =======
 
-Figure 1: Representative images of CT scans
-Figure 1A: Representative images of physician-annotated emphysematous and non-emphysematous CT scans (familiar for radiologists)
-Figure 1B: Representative images of model-predicted emphysematous and non-emphysematous CT scans (familiar for radiologists)
-
-Figure 1: Network architecture and learning curves
-Figure 2A: Network architecture: `keras.utils.plot_model()` (helpful for those not familiar with deep learning)
-Figure 2B: Learning curves: `training_graph.py` (helpful for those not familiar with deep learning)
-
-Figure 3: Neural network performance for predicting emphysema
-Figure 3A: Confusion matrix - 2 x 2 table of actual versus predicted labels to show performance of model for predicting emphysema
-Figure 3B: Receiver operating characteristic (ROC) curve to show performance of model for predicting emphysema
+Figure 1: Lorenz curve
 
 
-Figure 4: Markov model performance for predicting cancer risk
-Figure 4A: Confusion matrix - 2 x 2 table of actual versus predicted labels to show performance of Markov model
-Figure 4B: Receiver operating characteristic (ROC) curve to show performance of Markov model
+Other Figures?
+Representative images of physician-annotated emphysematous and non-emphysematous CT scans (familiar for radiologists)
+Representative images of model-predicted emphysematous and non-emphysematous CT scans (familiar for radiologists)
 
-Figure 5: Comparison of binary classifier network versus image features network
-Figure 5A: Confusion matrix - 2 x 2 table of actual versus predicted labels to show performance of Markov model
-Figure 5B: Receiver operating characteristic (ROC) curve to show performance of Markov model
+Network architecture and learning curves
+Network architecture: `keras.utils.plot_model()` (helpful for those not familiar with deep learning)
+Learning curves: `training_graph.py` (helpful for those not familiar with deep learning)
 
-Notes
-=====
-
-JTO instead of Radiology?
-
-Look at AI journals for radiology
+Neural network performance for predicting emphysema
+Confusion matrix - 2 x 2 table of actual versus predicted labels to show performance of model for predicting emphysema
+Receiver operating characteristic (ROC) curve to show performance of model for predicting emphysema
 
 
+Markov model performance for predicting cancer risk
+Confusion matrix - 2 x 2 table of actual versus predicted labels to show performance of Markov model
+Receiver operating characteristic (ROC) curve to show performance of Markov model
+
+Comparison of binary classifier network versus image features network
+Confusion matrix - 2 x 2 table of actual versus predicted labels to show performance of Markov model
+Receiver operating characteristic (ROC) curve to show performance of Markov model
