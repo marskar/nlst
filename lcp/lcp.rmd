@@ -1,0 +1,306 @@
+---
+title: "Deep learning analysis of lung nodules decreases false positive rate in the National Lung Screening Trial"
+output:
+  word_document:
+    reference_docx: style.docx
+bibliography: bibliography.bib
+csl: journal-of-the-national-cancer-institute.csl
+---
+
+```{r include=FALSE, cache=FALSE}
+library(knitr)
+library(here)
+```
+
+Introduction {#introduction .unnumbered}
+========================================
+
+Low-dose Computed Tomography (LDCT) images collected during epidemiological
+studies, clinical trials, and routine screening represent an opportunity to
+improve the accuracy of cancer risk predictions. LDCT imaging is an effective
+modality for early detection and diagnosis of lung cancer. The National Lung
+Screening Trial (NLST) reported a 20% reduction in mortality in the LDCT arm
+relative to the standard X-ray arm [@nlst2011].
+
+The use of LDCT for lung cancer screening is not without limitations, however,
+and current obstacles include
+- high inter-rater variability, i.e. differences among the assessments of
+  different clinicians and
+- high false positive rates, i.e. detecting cancer in individuals without
+  cancer.
+In the NLST, for example, roughly a quarter (26.6%) of the positive baseline
+LDCT scans did not result in a cancer diagnosis [@nlst2011]. Methods to improve
+the false positive rate have been successfully implemented [@pinsky2015], but
+false positives remain a major concern.
+
+In an effort to overcome the limitations described above, we aim to develop
+lung cancer risk prediction models that can integrate LDCT image features with
+established risk factors. Current statistical models used to assess cancer risk
+focus on well-described risk factors, such as smoking, and demographic factors,
+like race [@katki2018]. Integrating image data into statistical models
+represents a significant challenge, because of the computational requirements
+and technical expertise required to extract image features as numeric variables
+that can be used in statistical models.
+
+As part of this work, we will develop an image analysis pipeline that trains
+three-dimensional convolutional neural networks (3D CNN) to distill LDCT lung
+scans into variables for lung cancer risk prediction models. A 3D CNN utilizes
+multiple layers of convolutions to detect features all throughout a lung scan,
+as opposed to a two-dimensional CNN which extracts feature from a single image
+slice at a time. 3D CNN have the potential to yield improved results, but
+require far greater computational resources than 2D CNN.
+
+Algorithmic feature extraction from LDCT images offers many advantages over
+manual annotation of images by physicians. In particular, CNN image feature
+extraction is quantitative and can be automated to as part of systems that
+supply image features for downstream lung cancer risk prediction models or that
+output predicted lung cancer risk directly. These images features can also be
+used to identify conditions that may be associated with lung cancer risk, like
+emphysema.
+
+The work described here will constitute a proof of principle of cancer risk
+modeling methods that combine algorithmic imaging analysis techniques with
+classical cancer risk modeling. Algorithmic feature extraction from LDCT images
+offers many advantages over manual annotation of images by physicians. In
+particular, algorithms can be automated and yield quantitative results, whereas
+image annotation by physicians is tedious and difficult to quantify.
+Furthermore, the reproducibility and reliability of algorithmic approaches can
+be ensured through software engineering best practices.
+
+While our current focus is lung cancer, the methods we will develop could
+potentially be adapted for other cancer types. For example, it may be possible
+employ a similar approach using image data from other medical screening
+modalities, such as mammograms to improve breast cancer risk prediction or
+colposcopic images to assess cervical cancer risk. Similarly, we  can extend
+the utility of our proposed approach beyond cancer by shifting our focus to
+LDCT image characteristics related to heart disease and chronic obstructive
+pulmonary disease. The ultimate goal of this work is to highlight the
+importance of screening, inform screening guidelines, and provide individuals
+with improved assessments of their health risks.
+
+Integrating heterogeneous data into statistical models represents a significant
+technical challenge. The work described here constitutes a proof of principle
+of a cancer risk modeling method that combines imaging analysis techniques with
+classical cancer risk modeling. Current statistical models used to assess
+cancer risk focus on well-described risk factors, such as smoking, and
+demographic factors, such as race and ethnicity.
+
+Low-dose Computed Tomography (LDCT) images collected during epidemiological
+studies, clinical trials, and routine screening represent an opportunity to
+improve the accuracy of cancer risk predictions. LDCT imaging is an effective
+modality for early detection and diagnosis of lung cancer. The use of LDCT for
+lung cancer screening is not without limitations, however, and current
+obstacles include 1) high inter-rater variability, i.e. differences among the
+assessments of different clinicians and 2) high false positive rates, i.e.
+detecting cancer in individuals without cancer.
+
+In an effort to overcome these limitations, we aim to develop lung cancer risk
+prediction models that can integrate physician-annotated and algorithmically
+derived LDCT image features with established risk factors, such as smoking
+exposure. In essence, our approach is to update prescreening risk, calculated
+based on known risk factors, with information obtained from LDCT screening. To
+evaluate the feasibility and utility of this approach, we analyzed LDCT images
+obtained from the National Lung Screening Trial (NLST).
+
+We used an AI developed for discrimination of malignant and benign
+nodules, to see whether it could improve a clinical model for the
+prediction of a screening patient's likelihood of developing cancer over
+the upcoming year. The existing model used a number of features
+extracted from the metadata of the US National Lung Screening Trial
+(NLST) to produce a likelihood score, given a screening output in year
+*y*, of developing cancer before the corresponding screening image taken
+at year *(y+1)*. These features included both patient clinical data
+(age, smoking history etc), and quantities extracted from a radiological
+read of the screening CT, such as maximal nodule size, the existence of
+any GGO nodules on the CT, and presence of emphysema within the patient.
+
+Methods {#methods .unnumbered}
+==============================
+
+To evaluate the feasibility and utility of our proposed approach and follow
+through with aims described in this proposal, we analyzed LDCT images obtained
+from the National Lung Screening Trial (NLST). We obtained LDCT scans from all
+of the participants (n = 26722) in the LDCT arm of the NLST [@nlst2011]. Each
+study participant was scheduled to receive three yearly scans. LDCT scan were
+labeled by radiologists at the site of the screening for lung abnormalities. We
+developed data processing pipelines in the R programming language to integrate
+clinical and epidemiologic data from the NLST with features that we extracted
+from the LDCT scan scan images using 3D CNNs.
+
+Before the LDCT scans can be used to train 3D CNNs, the LDCT scans must
+processed. To generate processed data, the LCDT scans were first converted to
+NifTI-1 format, then cropped to a bounding box around the lung using the
+Progressive Holistically-Nested Network (P-HNN) lung segmenter[@phnn17],
+normalized in the three different lung windows of [−1000, 200], [−160, 240],
+and [−1000, −775] Hounsfield units, and rescaled to a standard size of
+128x128x128. The resulting 3-channel images then be used for 3D CNN training.
+
+Our proposed neural network architecture consists of five 4-layer blocks of
+3x3x3 convolution, batch normalization, ReLU activation, and 3D max pooling;
+then a convolution group of 2x2x2 convolution, batch normalization, Rectified
+Linear Unit (ReLU) activation, and 50% dropout before a fully connected group
+of 1x1x1 convolution, 50% dropout, 1x1x1 convolution, 50% dropout, a flattening
+layer, and a dense layer with 2 class outputs. The labels used for training are
+physician annotations of lung conditions. The loss function we used for binary
+classification of lung health conditions, for example emphysematous or
+non-emphysematous, is cross entropy. All of our 3D CNNs are implemented with
+the Python programming language and the Tensorflow [@keras15] library.
+
+Previously, our group has shown that prescreening risk, calculated with the
+Lung Cancer Risk Assessment Tool (LCRAT) model [@katki2018], can be combined
+with physician annotations of lung conditions to more accurately predict lung
+cancer risk [@robbins2019]. In this previous work, we used log-binomial
+regression [@wacholder1986] to fit first-order Markov transition models
+[@diggle2002]. Rather than using physician annotations in a model directly, we
+used physician annotations of lung conditions to train 3D CNNs to produce
+quantitative estimates of lung condition severity. We then used a statistical
+technique called stacking to integrate LCRAT-calculated prescreening risk with
+3D CNN outputs. Stacking aggregates the multiple models outputs using a
+combiner algorithm that can described as a meta-learner [@wolpert1992;
+@breiman1996; @vanderlaan_2007]. In summary, we propose a novel lung cancer
+risk prediction method that utilizes a meta-learning algorithm to combine the
+outputs of the LCRAT model and 3D CNNs trained to identify lung conditions.
+
+The chest CT scans used in this study were taken from the all three years of
+the NLST from both the LSS branch and the ACRIN branch; 8416 patients were used
+for training, 480 for validation, and 2016 for testing. Each CT scan was
+labeled by radiologists at the site of the screening for lung CT abnormalities.
+
+A re-curated version of the NLST dataset CTs and metadata was used for this
+study. Each CT listed as containing at least one nodule was reviewed by a
+medical doctor or medical student, under expert supervision from University of
+Oxford Radiologists, and metadata records of the CT findings were reviewed and
+extended. In particular, the size, extent, location, margins and attenuation of
+each nodule were reviewed by the same small team of individuals, and the exact
+3D location of each nodule was identified and recorded. Additional nodules not
+listed in the
+
+NLST metadata were also added as long as they were not fully calcified
+(since fully calcified nodules were not considered "positive findings"
+in the original NLST data). As well as reviewing all CTs on which one or
+more nodules was recorded, the team also reviewed all CTs of patients
+recorded as having developed lung cancer, and again fully reviewed and
+extended their mark-up and metadata. Patients who never had any reported
+nodules and also never had lung cancer were not considered or marked up.
+
+An AI called the LCP-CNN (Lung Cancer Prediction Convolutional Neural Network)
+was trained on this augmented NLST set in an 8-fold cross-validated way using
+Tensorflow [@keras15]. The AI training is outside the scope of this publication,
+but for reference, the training used class balancing, and also extensive
+pre-training on hundreds of thousands of non-NLST images in order to achieve
+strong performance both on the testing folds of the cross-validation, and also
+on several independent external datasets.
+
+The AI was trained for the task of malignant vs benign classification,
+and produces a score where 0 indicates benignity, and 100 indicates
+malignancy.
+
+The set of features extracted from the NLST metadata and the re-curated
+CT information represents the full space of information available to our
+new model.
+
+\[Table of each feature under consideration for the screening models.
+Detail which features are derived from where. LP or ND will use this
+list to produce the up-to-date release of Optellum's nodule data and
+metadata for use in this project\].
+
+The new model we are fitting is an extension of \<background description
+of Hilary's work\>. The particular form of the model being fitted is
+\<equations\>.
+
+Two versions of the model were fitted using the feature set described
+above. In the first, the maximum LCP score for a given CT was *not*
+available as a feature, and in the second, it was available for
+selection. In both cases, feature selection was done using \[Bayes
+Information Criterion or Lasso\].
+
+
+The four models were then compared according to \<TBD the
+necessary but sufficient statistical tests\>, showing that in both cases
+the addition of the LCP-CNN gave a better fit to data.
+
+Results {#results .unnumbered}
+==============================
+
+We should defer writing up any results until we've reached consensus
+with everything above.
+most of this is required during training and not during deployment.
+
+Discussion {#discussion .unnumbered}
+==========
+
+The results presented here show that 3D CNN-based approaches are a promising
+direction of research for computer-aided prediction of a future cancer
+diagnosis. As well as just diagnosing cancer, neural networks could identify
+multiple CT-diagnosed diseases to identify risk factors for lung cancer, or
+even identify lung cancer risk directly.
+Furthermore, the neural network may be useful as significantly more robust than the density mask approach, even with a
+very basic network.
+
+When applied to data obtained from Low-Dose Computed Tomography (LDCT) lung
+cancer screening, a Convolutional Neural Network (CNN) can yield information on
+entire organs, like the lungs or heart, or specific regions of interest, such
+as any existing lung cancer nodules. Essentially, CNNs are algorithms that
+distill complex data, typically images, into simpler outputs. Each CNN must be
+trained to perform a specific task. In particular, we trained CNNs to generate
+quantitative estimates of the severity of
+- heart conditions like coronary artery calcification, and lung conditions like
+  emphysema, adenopathy, and consolidation.
+We hypothesize that these health condition estimates will allow us to gain
+valuable insight into the risks of lung cancer, chronic obstructive pulmonary
+disease, and heart disease.
+
+In essence, our approach is to update prescreening risk, calculated using
+standard lung cancer risk prediction models, with information derived from LDCT
+screening by CNNs. We have previously demonstrated the utility of a similar
+approach that used physician annotations of LDCT screens. For example, we have
+shown that LDCT scans annotated by physicians as emphysematous are associated
+with increased lung cancer risk. Building on our previous work, we endeavor to
+develop a model that will aggregate the results of a prescreening risk model
+and multiple CNNs into a single lung cancer risk prediction. We hypothesize
+that a model which uses image features provided by a CNN instead of
+physician-annotated features will similarly result in a better risk assessment
+than prescreening risk alone, but without the need for physicians to manually
+annotate LDCT scans.
+
+Neural networks are often referred to as "black box" models, because it is very
+difficult to explain exactly what inputs result in a given output. We can use a
+technique called local interpretable model-agnostic explanations to pinpoint
+exactly what parts an image influence cancer risk, but this information is
+still be difficult to interpret. In contrast, if we obtain an estimate of lung
+condition severity from image data, we can then use interpretable statistical
+models to analyze how that lung condition affects lung cancer risk. In essence,
+the approach we are proposing combines the interpretability of classical
+statistical modeling with the ability of neural networks to extract information
+from images. We hypothesize that this combined model will have comparable
+predictive performance to a CNN that predicts lung cancer risk directly, but
+will additionally help to elucidate the factors that influence predictions.
+
+In the case of LDCT scans with identifiable lung cancer nodules, CNNs can
+provide a quantitative malignancy score based on nodule features. Malignancy
+scores can help distinguish between malignant and benign nodules, inform
+prognosis, and avoid unneeded interventions in response to the discovery of
+insignificant nodules. This approach focuses on the nodules and thus loses the
+context of the surrounding lung. We propose an alternate approach that uses a
+malignancy score produced by a CNN in addition to prescreening risk and
+information on lung condition obtained from physician annotation or using a
+CNN. We hypothesize that by taking into account prescreening risk and the state
+of the surrounding lungs we can avoid more false positives than with a
+CNN-derived malignancy score alone.
+
+Tables {#tables .unnumbered}
+======
+
+Table 1: Model Table
+
+Table 2: Variable Table
+
+Figures {#figures .unnumbered}
+=======
+
+Figure 1: Lorenz curve
+
+```{r echo=FALSE}
+include_graphics(here("lcp/lorenz.png"))
+```
+
