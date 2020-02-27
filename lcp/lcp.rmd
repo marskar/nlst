@@ -117,34 +117,16 @@ any GGO nodules on the CT, and presence of emphysema within the patient.
 Methods {#methods .unnumbered}
 ==============================
 
-To evaluate the feasibility and utility of our proposed approach and follow
-through with aims described in this proposal, we analyzed LDCT images obtained
-from the National Lung Screening Trial (NLST). We obtained LDCT scans from all
-of the participants (n = 26722) in the LDCT arm of the NLST [@nlst2011]. Each
-study participant was scheduled to receive three yearly scans. LDCT scan were
-labeled by radiologists at the site of the screening for lung abnormalities. We
-developed data processing pipelines in the R programming language to integrate
-clinical and epidemiologic data from the NLST with features that we extracted
-from the LDCT scan scan images using 3D CNNs.
+To evaluate the feasibility and utility of our proposed approach, we analyzed
+LDCT images obtained from the National Lung Screening Trial (NLST). We obtained
+LDCT scans from all of the participants (n = 26722) in the LDCT arm of the NLST
+[@nlst2011]. Each study participant was scheduled to receive three yearly
+scans. LDCT scan were labeled by radiologists at the site of the screening for
+lung abnormalities. We developed data processing pipelines in the R programming
+language to integrate clinical and epidemiologic data from the NLST with
+features that we extracted from the LDCT scan images using 3D CNNs.
 
-Before the LDCT scans can be used to train 3D CNNs, the LDCT scans must
-processed. To generate processed data, the LCDT scans were first converted to
-NifTI-1 format, then cropped to a bounding box around the lung using the
-Progressive Holistically-Nested Network (P-HNN) lung segmenter[@phnn17],
-normalized in the three different lung windows of [−1000, 200], [−160, 240],
-and [−1000, −775] Hounsfield units, and rescaled to a standard size of
-128x128x128. The resulting 3-channel images then be used for 3D CNN training.
 
-Our proposed neural network architecture consists of five 4-layer blocks of
-3x3x3 convolution, batch normalization, ReLU activation, and 3D max pooling;
-then a convolution group of 2x2x2 convolution, batch normalization, Rectified
-Linear Unit (ReLU) activation, and 50% dropout before a fully connected group
-of 1x1x1 convolution, 50% dropout, 1x1x1 convolution, 50% dropout, a flattening
-layer, and a dense layer with 2 class outputs. The labels used for training are
-physician annotations of lung conditions. The loss function we used for binary
-classification of lung health conditions, for example emphysematous or
-non-emphysematous, is cross entropy. All of our 3D CNNs are implemented with
-the Python programming language and the Tensorflow [@keras15] library.
 
 Previously, our group has shown that prescreening risk, calculated with the
 Lung Cancer Risk Assessment Tool (LCRAT) model [@katki2018], can be combined
@@ -214,10 +196,8 @@ available as a feature, and in the second, it was available for
 selection. In both cases, feature selection was done using Bayes
 Information Criterion or Lasso.
 
-
-The four models were then compared according to TBD the
-necessary but sufficient statistical tests, showing that in both cases
-the addition of the LCP-CNN gave a better fit to data.
+The four models were then compared according to Likelihood Ratio Test, showing
+that in both cases the addition of the LCP-CNN gave a better fit to data.
 
 Results {#results .unnumbered}
 ==============================
