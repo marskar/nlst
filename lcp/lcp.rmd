@@ -42,91 +42,51 @@ represents a significant challenge, because of the computational requirements
 and technical expertise required to extract image features as numeric variables
 that can be used in statistical models.
 
-As part of this work, we will develop an image analysis pipeline that trains
-three-dimensional convolutional neural networks (3D CNN) to distill LDCT lung
-scans into variables for lung cancer risk prediction models. A 3D CNN utilizes
-multiple layers of convolutions to detect features all throughout a lung scan,
-as opposed to a two-dimensional CNN which extracts feature from a single image
-slice at a time. 3D CNN have the potential to yield improved results, but
-require far greater computational resources than 2D CNN.
+To tackle this challenge, we set out to develop lung cancer risk prediction
+models that could integrate physician-annotated and algorithmically derived
+LDCT image features with established risk factors. To evaluate the feasibility and
+utility of this approach, we analyzed LDCT images obtained from the National
+Lung Screening Trial (NLST).
 
-Algorithmic feature extraction from LDCT images offers many advantages over
-manual annotation of images by physicians. In particular, CNN image feature
-extraction is quantitative and can be automated to as part of systems that
-supply image features for downstream lung cancer risk prediction models or that
-output predicted lung cancer risk directly. These images features can also be
-used to identify conditions that may be associated with lung cancer risk, like
-emphysema.
-
-The work described here will constitute a proof of principle of cancer risk
-modeling methods that combine algorithmic imaging analysis techniques with
-classical cancer risk modeling. Algorithmic feature extraction from LDCT images
-offers many advantages over manual annotation of images by physicians. In
-particular, algorithms can be automated and yield quantitative results, whereas
-image annotation by physicians is tedious and difficult to quantify.
-Furthermore, the reproducibility and reliability of algorithmic approaches can
-be ensured through software engineering best practices.
-
-While our current focus is lung cancer, the methods we will develop could
-potentially be adapted for other cancer types. For example, it may be possible
-employ a similar approach using image data from other medical screening
-modalities, such as mammograms to improve breast cancer risk prediction or
-colposcopic images to assess cervical cancer risk. Similarly, we  can extend
-the utility of our proposed approach beyond cancer by shifting our focus to
-LDCT image characteristics related to heart disease and chronic obstructive
-pulmonary disease. The ultimate goal of this work is to highlight the
-importance of screening, inform screening guidelines, and provide individuals
-with improved assessments of their health risks.
-
-Integrating heterogeneous data into statistical models represents a significant
-technical challenge. The work described here constitutes a proof of principle
-of a cancer risk modeling method that combines imaging analysis techniques with
-classical cancer risk modeling. Current statistical models used to assess
-cancer risk focus on well-described risk factors, such as smoking, and
-demographic factors, such as race and ethnicity.
-
-Low-dose Computed Tomography (LDCT) images collected during epidemiological
-studies, clinical trials, and routine screening represent an opportunity to
-improve the accuracy of cancer risk predictions. LDCT imaging is an effective
-modality for early detection and diagnosis of lung cancer. The use of LDCT for
-lung cancer screening is not without limitations, however, and current
-obstacles include 1) high inter-rater variability, i.e. differences among the
-assessments of different clinicians and 2) high false positive rates, i.e.
-detecting cancer in individuals without cancer.
-
-In an effort to overcome these limitations, we aim to develop lung cancer risk
-prediction models that can integrate physician-annotated and algorithmically
-derived LDCT image features with established risk factors, such as smoking
-exposure. In essence, our approach is to update prescreening risk, calculated
-based on known risk factors, with information obtained from LDCT screening. To
-evaluate the feasibility and utility of this approach, we analyzed LDCT images
-obtained from the National Lung Screening Trial (NLST).
-
-We used an AI developed for discrimination of malignant and benign
-nodules, to see whether it could improve a clinical model for the
-prediction of a screening patient's likelihood of developing cancer over
-the upcoming year. The existing model used a number of features
-extracted from the metadata of the US National Lung Screening Trial
-(NLST) to produce a likelihood score, given a screening output in year
-*y*, of developing cancer before the corresponding screening image taken
-at year *(y+1)*. These features included both patient clinical data
-(age, smoking history etc), and quantities extracted from a radiological
-read of the screening CT, such as maximal nodule size, the existence of
-any GGO nodules on the CT, and presence of emphysema within the patient.
+As a proof of principle, we used an deep learning algorithm developed for
+discrimination of malignant and benign nodules, to see whether it could improve
+a clinical model for the prediction of a screening patient's likelihood of
+developing cancer over the upcoming year. The existing model used a number of
+features extracted from the metadata of the US National Lung Screening Trial
+(NLST) to produce a likelihood score of developing cancer before the
+corresponding screening image taken the following year. These features included
+both patient clinical data (age, smoking history etc), and quantities extracted
+from a radiological read of the screening CT, such as maximal nodule size, the
+existence of any GGO nodules on the CT, and presence of emphysema within the
+patient.
 
 Methods {#methods .unnumbered}
 ==============================
 
-To evaluate the feasibility and utility of our proposed approach, we analyzed
-LDCT images obtained from the National Lung Screening Trial (NLST). We obtained
-LDCT scans from all of the participants (n = 26722) in the LDCT arm of the NLST
-[@nlst2011]. Each study participant was scheduled to receive three yearly
-scans. LDCT scan were labeled by radiologists at the site of the screening for
-lung abnormalities. We developed data processing pipelines in the R programming
+We set out to evaluate the utility of combining 1) the Lung Cancer Prediction Convolutional Neural Network (LCP-CNN) [@Baldwin_2020], a deep learning algorithm developed to classify nodules as malignant or benign, and 2) the Lung Cancer Risk Assessment Tool (LCRAT) [@Katki_2016], a statistical model that assesses cancer risk based on prescreening factors. Towards this goal, we first prepared a re-curated version of the National Lung Screening Trial (NLST) [@NLST_2011] dataset. To create the re-curated NLST dataset, medical doctors or medical students, under expert supervision from University of Oxford Radiologists, reviewed and extended metadata related to a subset of NLST Low-dose Computed Tomography (LDCT) scans.
+
+The LDCT scan subset included 1) scans listed as containing at least one nodule, 2) scans that contained non-calcified nodules not listed in the original NLST metadata, and 3) scans of all NLST participants recorded as having developed lung cancer. In particular, the size, extent, location, margins and attenuation of each nodule were reviewed by the same small team of individuals, and the exact 3D location of each nodule was identified and recorded. NLST participant who never had any reported nodules and also never developed lung cancer did not have their scans reviewed.
+
+Before training LCP-CNN on the LDCT scan subset, we first used transfer learning to pre-train the algorithm on hundreds of thousands of non-NLST images. We then trained the LCP-CNN to discriminate between malignant and benign nodules. We used class balancing to overcome the much higher frequency of individuals who did not develop cancer compared to cancer cases in the NLST dataset. We performed 8-fold cross-validation and generated LCP scores for each nodule in all eight test folds. LCP scores range between 0 and 1, where scores closer to 1 indicate malignancy. We decided to focus on only the highest scoring nodules and considered the maximum LCP score observed in each scan to be the final LCP-CNN output.
+
+In parallel to the deep learning work described above, we used obtained prescreening risk predictions for all NSLT participants using LCRAT [@Katki_2016]. Unlike LCP-CNN, LCRAT does not use image data and instead calculates prescreening cancer risk based on 12 known cancer risk factors. After training LCRAT on data from the Prostate, Lung, Colorectal, and Ovarian Cancer Screening Trial (PLCO) [@PLCO_2000], we predicted the prescreening risks of all NLST participants. We then sought to integrate prescreening risk prediction with deep learning image analysis by passing prescreening risks and LCP scores to a combiner algorithm trained to predict cancer cases in the subsequent screening year. In essence, our approach is to update prescreening risk, calculated from known risk factors, with information obtained from LDCT scans.
+
+We then using the stats and yardstick R packages [@R_2019; @Kuhn_2019] to compare the performance of the combiner algorithm when provided LCP scores and prescreening risks against either of the two inputs alone. The addition of prescreening risk improved cancer risk prediction performance when compared to LCP score alone (Table 1) with a likelihood ratio test (p-value: 0.00431), but the improvements in Akaike Information Criterion (AIC) and Area Under the ROC Curve (AUROC) were minimal (AIC: 1514 versus 1520; AUROC: 0.851 versus 0.850).
+
+To visually compare the models, we plotted the sensitivity (recall) against the proportion of participants in annual versus biennial screening (Figure 1) using the ggplot R package [@Wickham_2016]. This type of plot is referred to as a gain curve by the yardstick package. The plot shows the sensitivity gained by shifting individuals from biennial to annual screening. Like the AIC and AUROC values in Table 1, Figure 1 shows that the model using LCP scores to predict cancer outperforms the model using prescreening risks alone. Adding prescreening risk on top of LCP scores does not lead to an easily discernible difference.
+
+To improve the model further, we included LDCT scan information annotated by physicians in addition to the LCP scores and prescreening risks. This approach is similar to LCRAT+CT [@Robbins_2019], a version of LCRAT that includes physician annotated features. Unlike LCRAT+CT, we focused on LDCT features only present in positive scans, such as the location of the nodule in the lungs.
+
+The AI was trained for the task of malignant vs benign classification,
+and produces a score where 0 indicates benignity, and 100 indicates
+malignancy.
+ simultaneously trained the LCP-CNN on Low-dose Computed Tomography (LDCT) scans from all participants in the LDCT arm of the National Lung Screening Trial (NLST) [@NLST_2011]. We performed 5-fold cross-validation to generate LCP scores that predicted the cancer risk of each of the three yearly NLST LCDT scans.
+
+In parallel to the deep learning approach described above, we used LCRAT to produce cancer risk predictions based on prescreening-risk factors.
+
+The LCP scores we generated then served as inputs for for a combiner algorithm  lung abnormalities. We developed data processing pipelines in the R programming
 language to integrate clinical and epidemiologic data from the NLST with
 features that we extracted from the LDCT scan images using 3D CNNs.
-
-
 
 Previously, our group has shown that prescreening risk, calculated with the
 Lung Cancer Risk Assessment Tool (LCRAT) model [@katki2018], can be combined
@@ -242,6 +202,58 @@ that a model which uses image features provided by a CNN instead of
 physician-annotated features will similarly result in a better risk assessment
 than prescreening risk alone, but without the need for physicians to manually
 annotate LDCT scans.
+
+As part of this work, we will develop an image analysis pipeline that trains
+three-dimensional convolutional neural networks (3D CNN) to distill LDCT lung
+scans into variables for lung cancer risk prediction models. A 3D CNN utilizes
+multiple layers of convolutions to detect features all throughout a lung scan,
+as opposed to a two-dimensional CNN which extracts feature from a single image
+slice at a time. 3D CNN have the potential to yield improved results, but
+require far greater computational resources than 2D CNN.
+
+Algorithmic feature extraction from LDCT images offers many advantages over
+manual annotation of images by physicians. In particular, CNN image feature
+extraction is quantitative and can be automated to as part of systems that
+supply image features for downstream lung cancer risk prediction models or that
+output predicted lung cancer risk directly. These images features can also be
+used to identify conditions that may be associated with lung cancer risk, like
+emphysema.
+
+The work described here will constitute a proof of principle of cancer risk
+modeling methods that combine algorithmic imaging analysis techniques with
+classical cancer risk modeling. Algorithmic feature extraction from LDCT images
+offers many advantages over manual annotation of images by physicians. In
+particular, algorithms can be automated and yield quantitative results, whereas
+image annotation by physicians is tedious and difficult to quantify.
+Furthermore, the reproducibility and reliability of algorithmic approaches can
+be ensured through software engineering best practices.
+
+While our current focus is lung cancer, the methods we will develop could
+potentially be adapted for other cancer types. For example, it may be possible
+employ a similar approach using image data from other medical screening
+modalities, such as mammograms to improve breast cancer risk prediction or
+colposcopic images to assess cervical cancer risk. Similarly, we  can extend
+the utility of our proposed approach beyond cancer by shifting our focus to
+LDCT image characteristics related to heart disease and chronic obstructive
+pulmonary disease. The ultimate goal of this work is to highlight the
+importance of screening, inform screening guidelines, and provide individuals
+with improved assessments of their health risks.
+
+Integrating heterogeneous data into statistical models represents a significant
+technical challenge. The work described here constitutes a proof of principle
+of a cancer risk modeling method that combines imaging analysis techniques with
+classical cancer risk modeling. Current statistical models used to assess
+cancer risk focus on well-described risk factors, such as smoking, and
+demographic factors, such as race and ethnicity.
+
+Low-dose Computed Tomography (LDCT) images collected during epidemiological
+studies, clinical trials, and routine screening represent an opportunity to
+improve the accuracy of cancer risk predictions. LDCT imaging is an effective
+modality for early detection and diagnosis of lung cancer. The use of LDCT for
+lung cancer screening is not without limitations, however, and current
+obstacles include 1) high inter-rater variability, i.e. differences among the
+assessments of different clinicians and 2) high false positive rates, i.e.
+detecting cancer in individuals without cancer.
 
 Neural networks are often referred to as "black box" models, because it is very
 difficult to explain exactly what inputs result in a given output. We can use a
