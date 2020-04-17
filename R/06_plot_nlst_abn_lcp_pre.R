@@ -143,7 +143,8 @@ mod_table %>%
         deviance="Deviance",
         lrt_p_value="LRT p-value"
     )
-mod_table
+
+saveRDS(mod_table, file = "model_table.rds")
 
 # Variable table ----
 var_table <-
@@ -179,6 +180,7 @@ var_table <-
         p_value="p-value"
     )
 
+saveRDS(var_table, file = "variable_table.rds")
 var_table
 
 # Risk table ----
@@ -203,6 +205,8 @@ thresholds = c(0.00421, 0.005, .01, .02, .04, .08, .12)
 
 lcp_risk_table <- map_dfr(thresholds, get_risk_table, x = lcp)
 lcp_risk_table 
+
+saveRDS(lcp_risk_table, file = "lcp_risk_table.rds")
 
 # Model metrics ----
 get_model_metrics <- function (x) {
