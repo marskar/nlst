@@ -56,8 +56,8 @@ features extracted from the metadata of the US National Lung Screening Trial
 (NLST) to produce a likelihood score of developing cancer before the
 corresponding screening image taken the following year. These features included
 both patient clinical data (age, smoking history etc), and quantities extracted
-from a radiological read of the screening CT, such as maximal nodule size, the
-existence of any GGO nodules on the CT, and presence of emphysema within the
+from a radiological read of the screening LDCT, such as maximal nodule size, the
+existence of any ground glass object (GGO) nodules on the LDCT, and presence of emphysema within the
 patient.
 
 Methods {#methods .unnumbered}
@@ -66,11 +66,12 @@ Methods {#methods .unnumbered}
 We set out to evaluate the utility of combining 1) the Lung Cancer Prediction
 Convolutional Neural Network (LCP-CNN) [@Baldwin_2020], a deep learning
 algorithm developed to classify nodules as malignant or benign, and 2) the Lung
-Cancer Risk Assessment Tool (LCRAT) [@Katki_2016], a statistical model that
-assesses cancer risk based on prescreening factors. Towards this goal, we first
-prepared a re-curated version of the National Lung Screening Trial (NLST)
-[@NLST_2011] dataset. To create the re-curated NLST dataset, medical doctors or
-medical students, under expert supervision from University of Oxford
+Cancer Risk Assessment Tool plus Computed Tomography (LCRAT+CT)
+[@Robbins_2019], a statistical model that assesses cancer risk based on
+prescreening factors and physician-annotated LDCT features. Towards this goal,
+we first prepared a re-curated version of the National Lung Screening Trial
+(NLST) [@NLST_2011] dataset. To create the re-curated NLST dataset, medical
+doctors or medical students, under expert supervision from University of Oxford
 Radiologists, reviewed and extended metadata related to a subset of NLST
 Low-dose Computed Tomography (LDCT) scans.
 
@@ -94,49 +95,43 @@ closer to 1 indicate malignancy. We decided to focus on only the highest
 scoring nodules and considered the maximum LCP score observed in each scan to
 be the final LCP-CNN output.
 
-In parallel to the deep learning work described above, we used obtained
-prescreening risk predictions for all NSLT participants using LCRAT
-[@Katki_2016]. Unlike LCP-CNN, LCRAT does not use image data and instead
-calculates prescreening cancer risk based on 12 known cancer risk factors. We
-developed data processing pipelines in the R programming language [@R_2019] to
-integrate clinical and epidemiologic data from the NLST with features that we
-extracted from the LDCT scan images using 3D CNNs. After training LCRAT on data
-from the Prostate, Lung, Colorectal, and Ovarian Cancer Screening Trial (PLCO)
-[@PLCO_2000], we predicted the prescreening risks of all NLST participants. We
-then sought to integrate prescreening risk prediction with deep learning image
-analysis by passing prescreening risks and LCP scores to a combiner algorithm
-trained to predict cancer cases in the subsequent screening year. In essence,
-our approach is to update prescreening risk, calculated from known risk
-factors, with information obtained from LDCT scans.
+In parallel to the deep learning work described above, we predicted the risk of
+lung cancer incidence within 1 year using the LCRAT+CT model [@Robbins_2019].
+LCRAT+CT is a log binomial model that interacts physician-annotated LDCT image
+features with log-transformed lung cancer risk predictions [@Robbins_2019]. To
+obtain NLST lung cancer risk predictions, we used the Lung Cancer Risk
+Assessment Tool (LCRAT) [@Katki_2016] and a competing cause of death model that
+were fit to Prostate, Lung, Colorectal, and Ovarian Cancer Screening Trial
+(PLCO) [@PLCO_2000] data using the survival R package [@Therneau_2000;
+@Therneau_2020]. In essence, LCRAT calculates prescreening cancer risk based on
+12 known cancer risk factors and LCRAT+CT updates these prescreening risks
+based on information from 11 LDCT image features.
 
-We then using the stats and yardstick R packages [@R_2019; @Kuhn_2019] to
-compare the performance of the combiner algorithm when provided LCP scores and
-prescreening risks against either of the two inputs alone. The addition of
-prescreening risk improved cancer risk prediction performance when compared to
-LCP score alone (Table 1) with a likelihood ratio test (p-value: 0.00431), but
-the improvements in Akaike Information Criterion (AIC) and Area Under the ROC
-Curve (AUROC) were minimal (AIC: 1514 versus 1520; AUROC: 0.851 versus 0.850).
+We utilized a similar approach to improve upon the LCRAT+CT model by
+interacting log-transformed lung cancer risk with the maximum LCP score in
+a new log binomial model, which we named LCP+LCRAT+CT. We fit both log binomial
+models (LCRAT+CT and LCP+LCRAT+CT) using the parsnip R package
+[@Kuhn_2020_parsnip] and the stats R package [@R_2020] generalized linear model
+backend. To compare the performance of these two log binomial models, we
+calculated Bayesian Information Criterion (BIC) values and conducted
+a likelihood ratio test using the stats R package [@R_2020] (Table 1). The
+addition of maximum LCP score improved the lung cancer predictive performance
+of LCRAT+CT, according to the BIC (780 versus 825) and the likelihood ratio
+test (p-value: 2.16e-13).
 
 To visually compare the models, we plotted the sensitivity (recall) against the
 proportion of participants in annual versus biennial screening (Figure 1) using
-the ggplot R package [@Wickham_2016]. This type of plot is referred to as
-a gain curve by the yardstick package. The plot shows the sensitivity gained by
-shifting individuals from biennial to annual screening. Like the AIC and AUROC
-values in Table 1, Figure 1 shows that the model using LCP scores to predict
-cancer outperforms the model using prescreening risks alone. Adding
-prescreening risk on top of LCP scores does not lead to an easily discernible
-difference.
-
-To improve the model further, we included LDCT scan information annotated by
-physicians in addition to the LCP scores and prescreening risks. Previously,
-our group has shown that prescreening risk, calculated with the Lung Cancer
-Risk Assessment Tool (LCRAT) model [@katki2018], can be combined with physician
-annotations of lung conditions detected by LDCT to more accurately predict lung
-cancer risk [@@Robbins_2019]. This approach, named LCRAT+CT [@Robbins_2019], is
-essentially a version of LCRAT that includes physician annotated features.
-Unlike LCRAT+CT, we focused on LDCT features only present in positive scans,
-such as the location of the nodule in the lungs.
-
+the ggplot2 R package [@Wickham_2016]. This type of plot is referred to as
+a gain curve. The plot shows the sensitivity gained by shifting individuals
+from biennial to annual screening. The grey line represents the ideal gain
+curve, which shows the sensitivity we could achieve if screening were guided by
+perfect lung cancer predictions. The gain curves of the two log binomial models
+plot are summarized by the area under the receiver operator characteristic
+curve (AUROC) and gain capture statistics, calculated using the yardstick
+package [@Kuhn_2019_yardstick], in Table 1. Like the BIC and LRT, the AUROC
+(.87 versus .82), and gain capture (0.74 versus 0.64) also indicate that the
+addition of the maximum LCP score improves the ability of the LCRAT+CT model to
+predict lung cancer.
 
 Results {#results .unnumbered}
 ==============================

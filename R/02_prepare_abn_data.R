@@ -13,12 +13,16 @@ abn <- read_csv(here("data/mortalityrisk_abn_080216.csv"))
 # Created by script 01
 lrads = read_rds(here('data/lungrads.rds'))
 
+# 13 Jan 2020 - Calculate variable for mean diameter to use for Lung-RADS
+abn$mean_diameter <- rowMeans(abn[c("SCT_LONG_DIA","SCT_PERP_DIA")])
+
 # Organize abnormality data ####
 abn_lrads_merged <- abn %>%
     group_by(pid, STUDY_YR) %>%
     summarise(
-        longest_diam = max(SCT_LONG_DIA, na.rm = T),
-        longest_perp_diam = max(SCT_PERP_DIA, na.rm = T),
+        longest_diam = max(c(0, SCT_LONG_DIA), na.rm = T),
+        longest_mean_diam = max(c(0, mean_diameter), na.rm = T),
+        longest_perp_diam = max(c(0, SCT_PERP_DIA), na.rm = T),
         any_nodule = as.numeric(any(SCT_AB_DESC == 51, na.rm = T)),
         nodule_count = sum(SCT_AB_DESC == 51, na.rm = T),
         any_micronodule = as.numeric(any(SCT_AB_DESC == 52, na.rm = T)),
@@ -74,6 +78,8 @@ abn_lrads_merged <- abn %>%
     ) %>%
     # Replace study year with interval
     rename(interval = STUDY_YR) %>%
+    # TODO split bins differently: put lower value bins together
+    # TODO split bins differently: separate higher value bins
     mutate(
         diam_cat = case_when(
             longest_diam == 0 ~ 1,
@@ -95,6 +101,15 @@ abn_lrads_merged <- abn %>%
         all.x = TRUE,
         all.y = TRUE
     ) %>%
+    mutate(
+        prior_longest_mean_diam = ifelse(interval == 1, NA, lag(longest_mean_diam, 1)),
+        prior_nodule_count = ifelse(interval == 1, NA, lag(nodule_count, 1)),
+        new_nodule = ifelse(interval == 1, 0, as.numeric(I(nodule_count >
+                                                               prior_nodule_count))),
+        growing_nodule = ifelse(interval == 1 |
+                                    prior_nodule_count == 0, 0, as.numeric(I(
+                                        longest_mean_diam - prior_longest_mean_diam >= 1.5
+                                    )))) %>% 
     mutate(LRcat = as.factor(LRcat)) %>%
     # Make an LRcat variable relevant for negative screen groups
     mutate(LRcatcol.neg = case_when(

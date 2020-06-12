@@ -10,117 +10,174 @@ library(broom)
 library(recipes)
 library(parsnip)
 library(purrr)
-# install.packages('remotes')
-# remotes::install_github("rstudio/gt")
-# remotes::install_github("tidymodels/tune")
-# library(gt)
+# install.packages('gt')
+library(gt)
 # library(tune)
 library(yardstick)
 library(ggplot2)
 # install.packages("plotly")
 library(plotly)
+library(tidyr)
 
 # Data ----
 data <-
-    read_rds(here("data/nlst_abn_lcp_pre.rds")) %>%
-    mutate(case_at_next_screen = as.factor(case_at_next_screen),
-           any_growth = as.factor(any_growth)) %>%
-    filter(is.finite(longest_diam))
-
+  read_rds(here("data/nlst_abn_pre_lcp.rds")) %>%
+  mutate(
+    case_at_next_screen = as.factor(case_at_next_screen),
+    any_growth = as.factor(any_growth)
+  ) %>%
+  filter(is.finite(longest_diam)) %>% 
+  select(
+  case_at_next_screen,
+  log1yrisk,
+  max_lcp_score,
+  diam_cat,
+  prior_longest_mean_diam,
+  prior_nodule_count,
+  new_nodule,
+  growing_nodule,
+  any_right_mid,
+  any_lingula,
+  any_mixed,
+  any_upper,
+  any_spiculation,
+  any_poor_def,
+  any_margin_unab,
+  susp_change_att
+  ) %>% 
+  drop_na()
+m
 # Model output functions ----
 my_glance <- function(x, ...) {
-    tibble(
-        # model_name = as_label(enquo(x)),
-        null_deviance = x$fit$null.deviance,
-        null = x$fit$df.null,
-        aic = x$fit$aic,
-        deviance = x$fit$deviance,
-        residual = x$fit$df.residual
-    )
+  tibble(
+    # model_name = as_label(enquo(x)),
+    null_deviance = x$fit$null.deviance,
+    null = x$fit$df.null,
+    aic = x$fit$aic,
+    deviance = x$fit$deviance,
+    residual = x$fit$df.residual
+  )
 }
 
 # TODO put in splines, try transformation of max_lcp_score
 my_augment <- function(x, ...) {
-    tibble(
+  tibble(
     model_name = as_label(enquo(x)),
     actual = x$fit$y,
     predicted = x$fit$fitted.values,
-    )
+  )
 }
 
 options(yardstick.event_first = FALSE)
 get_model_table <- function (x) {
-    model_name <- quo_name(enquo(x))
-    glance(x$fit) %>%
-        mutate(model = model_name,
-               auroc = roc_auc_vec(as.factor(x$fit$y),
-                                 x$fit$fitted.values),
-               auprc = pr_auc_vec(as.factor(x$fit$y),
-                                  x$fit$fitted.values),
-               gain_cap = gain_capture_vec(as.factor(x$fit$y),
-                                           x$fit$fitted.values)
-               )
+  model_name <- quo_name(enquo(x))
+  glance(x$fit) %>%
+    mutate(
+      model = model_name,
+      bic = BIC(x$fit),
+      auroc = roc_auc_vec(as.factor(x$fit$y),
+                          x$fit$fitted.values),
+      auprc = pr_auc_vec(as.factor(x$fit$y),
+                         x$fit$fitted.values),
+      gain_cap = gain_capture_vec(as.factor(x$fit$y),
+                                  x$fit$fitted.values)
+    )
 }
 
 # Formulas ----
 lcp_form <- as.formula(case_at_next_screen ~ max_lcp_score)
 
-lcp_lcrat_form <- as.formula(case_at_next_screen ~ max_lcp_score + logit1yrisk)
+lcp_lcrat_form <-
+  as.formula(case_at_next_screen ~ max_lcp_score + log1yrisk)
 
-lcrat_ct_form <- as.formula(
-            case_at_next_screen
-            ~ logit1yrisk
-            + longest_diam
-            # + emphysema
-            # + consolidation
-            # + adenopathy
-            + any_growth # any_growth is a factor to not mislead in T0
-            + any_upper
-            + any_right_mid
-            + any_lingula
-            + any_mixed
-            + any_spiculation
-            + any_poor_def
-            + any_margin_unab
+main_lcrat_ct_form <- as.formula(
+  case_at_next_screen
+  ~ log1yrisk
+  # + longest_diam+longest_mean_diam
+  + prior_longest_mean_diam
+  + prior_nodule_count
+  + new_nodule
+  + growing_nodule
+  # + emphysema
+  # + consolidation
+  # + adenopathy+any_growth # any_growth is a factor to not mislead in T0+any_upper
+  + any_right_mid
+  + any_lingula
+  + any_mixed
+  + any_spiculation
+  + any_poor_def
+  + any_margin_unab
+  + susp_change_att
+  - 1
 )
 
-lcp_lcrat_ct_form <- update(lcrat_ct_form, ~ . + max_lcp_score)
+lcrat_ct_form <- as.formula(
+  case_at_next_screen
+  ~ -1
+  + log1yrisk:diam_cat
+  + log1yrisk:growing_nodule
+  + log1yrisk:new_nodule
+  + log1yrisk:any_upper
+  + log1yrisk:any_spiculation
+  + log1yrisk:I(any_right_mid == 1 | any_lingula == 1)
+  + log1yrisk:I(any_poor_def == 1 | any_margin_unab == 1)
+  + log1yrisk:susp_change_att
+  + log1yrisk:any_mixed
+)
+
+main_lcp_lcrat_ct_form <- update(main_lcrat_ct_form, ~ . + max_lcp_score)
+lcp_lcrat_ct_form <- update(lcrat_ct_form, ~ . + log1yrisk:max_lcp_score)
 
 # Refit to all data to get one model & get summary for each model
 # TODO 1. Send model summary tables for all three models (Table 1 for paper)
 
 # Model setup ----
-logit_mod <-
-    logistic_reg(mode = "classification") %>%
-    set_engine("glm")
+logistic_mod <-
+  logistic_reg(mode = "classification") %>%
+  set_engine("glm", family = binomial(link = "logit"))
+
+log_bin_mod <-
+  logistic_reg(mode = "classification") %>%
+  set_engine("glm", family = binomial(link = "log"))
 
 # Train models ----
 # 1. LCP
-lcp <- logit_mod %>% fit(lcp_form, data = data)
+lcp <- log_bin_mod %>% fit(lcp_form, data = data)
 # 2. LCRAT+CT
-lcrat_ct <- logit_mod %>% fit(lcrat_ct_form, data = data)
+main_lcrat_ct <- log_bin_mod %>% fit(main_lcrat_ct_form, data = data)
+lcrat_ct <- log_bin_mod %>% fit(lcrat_ct_form, data = data)
 # 3. LCP+LCRAT
-lcp_lcrat <- logit_mod %>% fit(lcp_lcrat_form, data = data)
+lcp_lcrat <- log_bin_mod %>% fit(lcp_lcrat_form, data = data)
 # 4. LCP+LCRAT+CT (including nodule features) main effects & interactions
-lcp_lcrat_ct <- logit_mod %>% fit(lcp_lcrat_ct_form, data = data)
+main_lcp_lcrat_ct <- log_bin_mod %>% fit(main_lcp_lcrat_ct_form, data = data)
+lcp_lcrat_ct <- log_bin_mod %>% fit(lcp_lcrat_ct_form, data = data)
 
 # LRT p-values ----
-pvals <- anova(lcp$fit, lcp_lcrat$fit, lcp_lcrat_ct$fit, test = "LRT")[5][[1]][2:3]
-pvals <- c(NA, NA, pvals)
+lcp_pvals <- anova(lcrat_ct$fit, lcp_lcrat_ct$fit, test = "LRT")[5][[1]][1:2]
+lcp_pvals
 
 # Model table ----
 mod_table <-
     bind_rows(
     get_model_table(lcrat_ct),
+    get_model_table(lcp_lcrat_ct),
+    ) %>%
+select(model, AIC, bic, auroc, gain_cap, deviance) %>%
+    mutate(lrt_p_value = lcp_pvals) %>%
+    identity()
+mod_table
+
+main_mod_table <-
+    bind_rows(
     get_model_table(lcp),
     get_model_table(lcp_lcrat),
-    get_model_table(lcp_lcrat_ct)
+    get_model_table(main_lcp_lcrat_ct)
     ) %>%
 select(model, AIC, auroc, gain_cap, deviance) %>%
-    mutate(lrt_p_value = pvals) %>%
+    mutate(lrt_p_value = main_lcp_pvals) %>%
     identity()
 
-mod_table
+main_mod_table
 
 mod_table %>%
     gt() %>%
@@ -144,15 +201,17 @@ mod_table %>%
         lrt_p_value="LRT p-value"
     )
 
-saveRDS(mod_table, file = "model_table.rds")
+saveRDS(main_mod_table, file = "model_table.rds")
 
 # Variable table ----
 var_table <-
     bind_rows(
-    tidy(lcp) %>% mutate(model = "LCP"),
-    tidy(lcrat_ct) %>% mutate(model = "LCRAT+CT"),
-    tidy(lcp_lcrat) %>% mutate(model = "LCP+LCRAT"),
-    tidy(lcp_lcrat_ct) %>% mutate(model = "LCP+LCRAT+CT")
+    # tidy(lcp) %>% mutate(model = "LCP"),
+    # tidy(lcp_lcrat) %>% mutate(model = "LCP+LCRAT"),
+    # tidy(main_lcrat_ct) %>% mutate(model = "main effects LCRAT+CT"),
+    # tidy(intr_lcrat_ct) %>% mutate(model = "interacted LCRAT+CT"),
+    # tidy(main_lcp_lcrat_ct) %>% mutate(model = "main effects LCP+LCRAT+CT"),
+    tidy(intr_lcp_lcrat_ct) %>% mutate(model = "LCP+LCRAT+CT")
 ) %>%
     select(model,
            variable = term,
@@ -161,7 +220,7 @@ var_table <-
            p_value = p.value) %>%
     identity()
 
-    gt() %>%
+    gt(var_table) %>%
     tab_header(
         title = "Variables",
     ) %>%
@@ -181,13 +240,12 @@ var_table <-
     )
 
 saveRDS(var_table, file = "variable_table.rds")
-var_table
+tail(var_table)
 
 # Risk table ----
 # TODO make risk table as in https://academic.oup.com/jnci/article/111/9/996/5445482 first 3 columns only:
 # columns 2 and 3 should absolute numbers and precentages
 # get value of x and y at each threshold
-risk_table <- model_metrics
 
 get_risk_table <- function (x, threshold) {
     my_augment(x) %>%
@@ -224,32 +282,34 @@ get_model_metrics <- function (x) {
     mutate(negatives = n() - positives) %>%
     mutate(fallout = false_positives / negatives) %>%
     # Lorenz (gain curve)
-    mutate(proportion_predicted_positive = predicted_positives / n())
+    mutate(proportion_predicted_positive = predicted_positives / n()) %>% 
+    arrange(desc(actual)) %>%
+    mutate(ideal_gain_x = row_number() / n()) %>% 
+    mutate(ideal_gain_y = cumsum(actual) / sum(actual))
 }
 
 model_metrics <-
     bind_rows(
     get_model_metrics(lcrat_ct) %>% mutate(model = "lcrat_ct"),
-    get_model_metrics(lcp) %>% mutate(model = "lcp"),
-    get_model_metrics(lcp_lcrat) %>% mutate(model = "lcp_lcrat"),
-    get_model_metrics(lcp_lcrat_ct) %>% mutate(model = "lcp_lcrat_ct")
+    get_model_metrics(lcp_lcrat_ct2) %>% mutate(model = "lcp_lcrat_ct")
 )
 
 # ROC ----
 get_roc_curve <- function(x) {
-    model_name <- quo_name(enquo(x))
-    tibble(truth=as.factor(x$fit$y),
-           estimate=x$fit$fitted.values) %>%
+  model_name <- quo_name(enquo(x))
+  tibble(truth = as.factor(x$fit$y),
+         estimate = x$fit$fitted.values) %>%
     roc_curve(truth, estimate) %>%
     mutate(model = model_name)
 }
 
 rocs <- bind_rows(
+    # get_roc_curve(main_lcrat_ct),
     get_roc_curve(lcrat_ct),
-    get_roc_curve(lcp),
-    get_roc_curve(lcp_lcrat),
-    get_roc_curve(lcp_lcrat_ct)
+    get_roc_curve(lcp_lcrat_ct2)
 )
+autoplot(rocs)
+ggsave("roc_autoplot.png")
 
 # PR ----
 get_pr_curve <- function(x) {
@@ -261,7 +321,7 @@ get_pr_curve <- function(x) {
 }
 
 prs <- bind_rows(
-    get_pr_curve(lcrat_ct),
+    get_pr_curve(main_lcrat_ct),
     get_pr_curve(lcp),
     get_pr_curve(lcp_lcrat),
     get_pr_curve(lcp_lcrat_ct)
@@ -277,49 +337,56 @@ get_gain_curve <- function(x) {
 }
 
 gains <- bind_rows(
-    get_gain_curve(lcrat_ct),
-    get_gain_curve(lcp),
-    get_gain_curve(lcp_lcrat),
-    get_gain_curve(lcp_lcrat_ct)
+  get_gain_curve(lcrat_ct),
+  get_gain_curve(lcp_lcrat_ct2)
 )
+autoplot(gains)
+ggsave("gain_autoplot.png")
+
 model_metrics %>% select(fallout, proportion_predicted_positive)
 # Plots ----
 # Lorenz plot (gain curve) ----
 model_metrics %>%
-    ggplot() +
-    aes(x = proportion_predicted_positive,
-        y = recall,
-        color = model) +
-    geom_line(size = 1.2) +
-    geom_segment(x = 0, xend = 1,
-                 y = 0, yend =1,
-                 linetype="dashed",
-                 color="black") +
-    xlab("Proportion of participants in annual versus biennial screening") +
-    ylab("Sensitivity (Recall)") +
-    ggtitle("Lorenz Plot (Gain curve)") +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    NULL
-ggsave("lorenz.png")
-    # ggplotly(ggplot2::last_plot())
+  ggplot() +
+  aes(x = proportion_predicted_positive,
+      y = recall,
+      color = model) +
+  geom_line(size = 1.2) +
+  geom_line(aes(x = ideal_gain_x, y = ideal_gain_y), size = 1.2, color="grey") +
+  geom_segment(
+    x = 0,
+    xend = 1,
+    y = 0,
+    yend = 1,
+    linetype = "dashed",
+    color = "black"
+  ) +
+  xlab("Proportion of participants in annual versus biennial screening") +
+  ylab("Sensitivity (Recall)") +
+  ggtitle("Lorenz Plot (Gain curve)") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme_bw() +
+  NULL
+ggsave("gain_manual.png")
 
-# ggsave("lorenz.png")
+
 gains %>%
     ggplot() +
     aes(x = .percent_tested,
         y = .percent_found,
         color = model) +
     geom_line(size = 1.2) +
-    geom_segment(x = 0, xend = 1,
-                 y = 0, yend =1,
-                 linetype="dashed",
-                 color="black") +
-    xlab("Proportion of participants in annual versus biennial screening") +
-    ylab("Sensitivity (Recall)") +
+    geom_segment(x = 0, xend = 100,
+                 y = 0, yend = 100,
+                 linetype = "dashed",
+                 color = "black") +
+    xlab("Percent of participants in annual versus biennial screening") +
+    ylab("Percent of lung cancers not delayed in detection") +
     ggtitle("Lorenz Plot (Gain curve)") +
     theme(plot.title = element_text(hjust = 0.5)) +
+    theme_bw() +
     NULL
-# ggsave("lorenz.png")
+ggsave("gain_yardstick.png")
 
 # ROC curve (TPR versus FPR) ----
 model_metrics %>%
@@ -336,10 +403,10 @@ model_metrics %>%
     ylab("Sensitivity (Recall)") +
     ggtitle("ROC curve (Fall-out versus Recall)") +
     theme(plot.title = element_text(hjust = 0.5)) +
+    theme_bw() +
     NULL
-ggsave("roc.png")
+ggsave("roc_manual.png")
 
-    # ggplotly(ggplot2::last_plot())
 
 rocs %>%
     ggplot() +
@@ -355,7 +422,9 @@ rocs %>%
     ylab("Sensitivity (Recall)") +
     ggtitle("ROC curve (Fall-out versus Recall)") +
     theme(plot.title = element_text(hjust = 0.5)) +
+    theme_bw() +
     NULL
+ggsave("roc_yardstick.png")
 
 # PR curve (Precision versus Recall) ----
 model_metrics %>%
@@ -467,7 +536,7 @@ summary(lcp_mod)
 lcrat_pred <-
     fit_resamples(
         case_at_next_screen
-        ~ logit1yrisk
+        ~ log1yrisk
         + emphysema
         + consolidation,
 # Put in features based on leaps best subset selection without lcp
@@ -492,7 +561,7 @@ lcp_lcrat_pred <-
     fit_resamples(
         case_at_next_screen
         ~ max_lcp_score
-        + logit1yrisk
+        + log1yrisk
         + emphysema
         + consolidation,
         logit_mod,
@@ -546,7 +615,7 @@ lcp_gain <- fit_resamples(
 
 lcrat_gain <- fit_resamples(
     case_at_next_screen
-    ~ logit1yrisk
+    ~ log1yrisk
     + emphysema
     + consolidation,
     logit_mod,
@@ -560,7 +629,7 @@ lcrat_gain <- fit_resamples(
 lcp_lcrat_gain <- fit_resamples(
     case_at_next_screen
     ~ max_lcp_score
-    + logit1yrisk
+    + log1yrisk
     + emphysema
     + consolidation,
     logit_mod,
@@ -590,4 +659,3 @@ all_gain %>%
 
 ggsave("gain.png")
 
-merge
