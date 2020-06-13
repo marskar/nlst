@@ -352,7 +352,7 @@ model_metrics %>%
       y = recall,
       color = model) +
   geom_line(size = 1.2) +
-  geom_line(aes(x = ideal_gain_x, y = ideal_gain_y), size = 1.2, color="grey") +
+  # geom_line(aes(x = ideal_gain_x, y = ideal_gain_y), size = 1.2, color="grey") +
   geom_segment(
     x = 0,
     xend = 1,
@@ -366,6 +366,8 @@ model_metrics %>%
   ggtitle("Lorenz Plot (Gain curve)") +
   theme(plot.title = element_text(hjust = 0.5)) +
   theme_bw() +
+  scale_y_continuous(expand = c(1e-3,1e-3)) +
+  scale_x_continuous(expand = c(1e-3,1e-3)) +
   NULL
 ggsave("gain_manual.png")
 
@@ -385,6 +387,8 @@ gains %>%
     ggtitle("Lorenz Plot (Gain curve)") +
     theme(plot.title = element_text(hjust = 0.5)) +
     theme_bw() +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_x_continuous(expand = c(0,0)) +
     NULL
 ggsave("gain_yardstick.png")
 
